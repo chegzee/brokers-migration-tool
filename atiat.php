@@ -5,7 +5,7 @@ require_once 'libs/Database.php';
 $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_atiat'); 
 // $db = new Database('epicuredb.mysql.database.azure.com', 'safamadmin@epicuredb', 'S@f@#012', 'brokerage_securisk');
 
-//
+//scared info changes
 //$sql = "SELECT subrisk_name FROM cod_subrisk";
 $sql = "SELECT company_name FROM tec_company";
 $db->query($sql);
