@@ -2,7 +2,7 @@
 
 require_once 'libs/Database.php';
 
-$db = new Database('localhost', 'brokerage', 'Brokerage@123456', 'brokerage');
+$db = new Database('localhost', 'brokerage', 'root', 'brokerage');
 //$db = new Database('epicuredb.mysql.database.azure.com', 'safamadmin@epicuredb', 'S@f@#012', 'brokerage_epicure');
 
 //

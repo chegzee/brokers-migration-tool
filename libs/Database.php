@@ -11,7 +11,7 @@ class Database {
     private $dbHandler;
     private $error;
     
-    public function __construct($dbHost, $dbUser, $dbPass, $dbName, $dbPort = '3306')
+    public function __construct($dbHost, $dbUser, $dbPass, $dbName, $dbPort = '3308')
     {
         //
         $this->dbHost = $dbHost;
