@@ -5,7 +5,7 @@
 
     
     $post = filter_input_array(INPUT_POST);
-    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_stalwart');
+    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_lib');
     $sqlQuery = new SqlQuery();
     $sql = "SELECT t1.auto_id, t1.subrisk_code, t1.subrisk_name, t1.alpha, t1.digit, t1.def_premium_rate, t1.def_com_rate, t1.risk_code, t1.status, t2.risk_name, LEFT(t1.modified_on, 16) modified_on FROM cod_subrisk t1 LEFT JOIN (SELECT t21.risk_code, t21.risk_name FROM cod_risk t21) t2 ON t1.risk_code = t2.risk_code WHERE 1=1 ";
     //
@@ -40,14 +40,12 @@
     
     // //
     if (($post['func'] ?? '') == 'saveClient' || ($post['func'] ?? '') == 'autoclient') {
-        // $MYSQL_DUPLICATE_CODES = array(1062, 23000);
+        
         $sqlcheck = "SELECT client_code FROM tec_client WHERE client_code = '" . $post['client_code'] . "' LIMIT 1";
-        // if(str_contains($e, '1062 Duplicate entry')) return;
-        // echo json_encode(array('status' => true, 'message '=> ""));exit;
         $sql = "INSERT INTO tec_client (`username`,`agent_code`, `title`, `first_name`, `last_name`, `middle_name`, `address`, `religion`, `phone`, `client_code` , `submit_by`, `submit_on`, `modified_by`, `modified_on`, `occupation`, `state`, `country`, `id_type`, `id_number`, `business`, `username2`, `registered_date`, `birth_date`, `gender`, `marital_status`)
          VALUES ('" . $post['username'] . "', '" . $post['agent_code'] . "', '" . $post['title'] . "', '" . $post['first_name'] . "', '" . $post['last_name'] . "', '" . $post['middle_name'] . "', '" . $post['address'] . "', '" . $post['religion'] . "', '" . $post['phone'] . "', '" . $post['client_code'] . "', '" . $post['submit_by'] . "', '" . $post['submit_on'] . "', '" . $post['modified_by'] . "', '" . $post['modified_on'] . "', '" . $post['occupation'] . "', '" . $post['state'] . "', '" . $post['country'] . "' , '" . $post['id_type'] . "', '" . $post['id_number'] . "' , '" . $post['business'] . "', '" . $post['username2'] . "', '" . $post['registered_date'] . "', '" . $post['birth_date'] . "', '" . $post['gender'] . "', '" . $post['marital_status'] . "' )";
         // $sql = "INSERT INTO tec_client (`username`, `submit_by`, `submit_on`, `modified_by`, `modified_on`, `first_name`, `client_code`, `agent_code`) VALUES ('" . $post['username'] . "', '" . $post['submit_by'] . "', '" . $post['submit_on'] . "', '" . $post['modified_by'] . "', '" . $post['modified_on'] . "', '" . $post['first_name'] . "', '" . $post['client_code'] . "', '" . $post['agent_code'] . "')";
-        // var_dump($sql);exit;
+        // 
         try {
             $db->query($sqlcheck);
             $v = $db->single();
@@ -57,6 +55,7 @@
             } else {
                 $db->query($sql);
                 $res = $db->rowCount();
+                
                 if ($res > 0) {
                     echo json_encode(array('status' => true, 'message ' => $res, 'msg' => $post));
                     exit;
@@ -126,7 +125,7 @@
         
         $db->query($sql);
         $policy = $db->single();
-        
+
         if(!empty($policy)){
             
             // last  DN
@@ -134,6 +133,7 @@
             FROM tec_policy_debit t1 WHERE t1.policy_code = '" . $policy->policy_code . "' AND (t1.bus_type = 'NEW' OR t1.bus_type = 'REN') ORDER BY t1.trans_date DESC LIMIT 1";
             $db->query($sql);
             $policy->DN = $db->rowCount() > 0 ? $db->single() : false;
+           
         }
         else{
             echo json_encode(array('status' => false));
@@ -148,7 +148,6 @@
         // $default_period = $post_end_date - strtotime(date('Y-m-d', strtotime($post['end_date'] . '-1 year +1 day'))) / (60*60*24);
         $period = round(($post_end_date - $post_start_date) / (60*60*24));
         $period_ratio = $period / $default_period;
-        // var_dump($default_period);exit;
         
         if(empty($policy->DN)){
             $post['bus_type'] = 'NEW';
@@ -178,10 +177,9 @@
         $post['other_charge'] = $post['commission'] - ($post['commission_'] + $post['vat']);
         
         $post['premium_rate'] = $post['gross_premium'] / $post['sum_insured'] * 100 / $period_ratio;
-        $post['com_rate'] = $post['commission'] / $post['gross_premium'] * 100;
-        $post['com_rate'] = ($post['commission'] * 100) / (1.075 * v['gross_premium']);
-        // $post['risk_code'] = 'V';
-        // var_dump($post['com_rate']);exit;
+        // $post['com_rate'] = $post['commission'] / $post['gross_premium'] * 100;
+        $post['com_rate'] = ($post['commission'] * 100) / (1.075 * $post['gross_premium']);
+        // var_dump($post);exit;
         
         $sql = "SELECT t1.auto_id, t1.item, t1.branch_code, t1.risk_code, t1.debit_account, t1.credit_account FROM sys_tec_act t1 WHERE t1.branch_code = 'LAG/01/001' ";
         $sql .= "AND t1.risk_code = '" . $post['risk_code'] . "' ";
@@ -726,23 +724,22 @@
                     $(json.result).append(html);
                     //first = false;
                     exceljson.forEach(function(v, i) {
-                        // let cod = String(Math.random());
-                        // console.log(v);
-                        // let names = (v['insured'] ?? '').trim();
                         if(v['insured'] === undefined || v['start_date'] === undefined) return;
 
                         if(((v['business'] ?? '').trim()) !== 'Corporate'){
                            let names = (v['insured'] ?? '').trim().split(' ');
-                        //    console.log(names)
+                            //    console.log(names)
                             v['first_name'] = names[0] ?? '';
                             v['last_name'] = names[1] ?? '';
                             v['middle_name'] = names[2] ?? '';
                             v['business'] = v['business'] ?? 'Individual';
                             v['id_type'] = 'NATIONAL_ID_CARD';
-                            v['id_number'] = '123' + i;if(v['title'] === 'Mr.'){
+                            v['id_number'] = '123' + i;
+
+                            if((v['title'] ?? '') === 'Mr.'){
                                 v['gender'] = "Male";
                                 v['marital_status'] = 'Single';
-                            }else if(v['title'] === "Mrs."){
+                            }else if((v['title'] ?? '') === "Mrs."){
                                 v['gender'] = 'Female';
                                 v['marital_status'] = 'Married';
                             }
@@ -752,9 +749,11 @@
                             v['middle_name'] = '';
                             v['last_name'] = (v['insured'] ?? '').trim();
                             // v['last_name'] = "";
+                            v['title'] = "Mr.";
+                            v['marital_status'] = "Single";
+                            v['gender'] = "Male";
                             v['id_type'] = 'CAC_NUMBER';
                             v['id_number'] = '123' + i;
-                            
                             
                         }
                         // console.log(names)
@@ -765,9 +764,9 @@
                         let date = new Date(v['registered_date'])
                         let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
                         // if(i == 0) i = 1;
-                        v['username'] = 'stalwart' + i + '@' + 'gmail.com';
+                        v['username'] = 'lib' + i + '@' + 'gmail.com';
                         v['agent_code'] = 'A/20/000003';
-                        let client_code =  'CL/swt/' + mid.slice(-6) + '/' + monthYear;
+                        let client_code =  'CL/LIB/' + mid.slice(-6) + '/' + monthYear;
                         let insured = v['insured'];
                         if(clients[insured] === undefined ){
                             clients[insured] = client_code;
@@ -789,16 +788,16 @@
                         v['state'] = 'LAGOS';
                         v['country'] = 'NIGERIA';
                         v['sector'] = 'private';
-                        v['username2'] = "chosenyinka@gmail.com"; //stallwart
-                        // v['username2'] = "oladimeji.fapohunda@libroker.com";//lib
+                        // v['username2'] = "chosenyinka@gmail.com"; //stallwart
+                        v['username2'] = "oladimeji.fapohunda@libroker.com";//lib
                         v['birth_date'] = moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
                         v['registered_date'] =  moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
 
-                        // v['submit_by'] = 'oladimeji.fapohunda@libroker.com';
-                        v['submit_by'] = 'chosenyinka@gmail.com';//oladimeji.fapohunda@libroker.com stalwart
+                        v['submit_by'] = 'oladimeji.fapohunda@libroker.com';//lib
+                        // v['submit_by'] = 'chosenyinka@gmail.com';//stalwart
                         v['submit_on'] =  v['registered_date'];
-                        // v['modified_by'] = 'oladimeji.fapohunda@libroker.com';
-                        v['modified_by'] = 'chosenyinka@gmail.com'; //stalwart
+                        v['modified_by'] = 'oladimeji.fapohunda@libroker.com';//lib
+                        // v['modified_by'] = 'chosenyinka@gmail.com'; //stalwart
                         v['modified_on'] = v['registered_date'];
                         //
                         html = '<tr class="row">';
@@ -864,7 +863,7 @@
             //policy
             function policyTable(json) {
                 $(json.result).find('tr').remove();
-                let policyFields = ['client_code', 'first_name', 'last_name', 'middle_name', 'policy_code', 'agent_code', 'trans_date', 'subrisk_name', 'subrisk_code', 'branch_code', 'submit_by', 'submit_on', 'modified_by', 'modified_on', ];
+                let policyFields = ['client_code', 'first_name', 'last_name', 'middle_name', 'policy_code', 'agent_code', 'trans_date', 'subrisk_name', 'subrisk_code', 'branch_code', 'submit_by', 'submit_on', 'modified_by', 'modified_on' ];
 
                 setTimeout(function() {
 
@@ -985,9 +984,12 @@
                         // // v['modified_by'] = 'chosenyinka@gmail.com'; stalwart
                          v['start_date'] = moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
                         counter++;
+
+                        let date = new Date(v['start_date'])
+                        let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
                         
                         let mid = "000000" + counter;
-                        let debit_code =  'DN/LIB/' + mid.slice(-6) + '/23';
+                        let debit_code =  'DN/LIB/' + mid.slice(-6) + '/' + monthYear;
                         v['debit_code'] = debit_code;
                         v['trans_mode'] = 'Transfer';
                         html = '<tr class="row">';
@@ -1072,8 +1074,11 @@
                     exceljson.forEach(function(v, i) { 
                         if(v['net_amount'] === undefined) return;
                         counter++;
+                        let date = new Date(v['start_date'])
+                        let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
+
                         let mid = "000000" + counter;
-                        let credit_code =  'CN/LIB/' + mid.slice(-6) + '/23';
+                        let credit_code =  'CN/LIB/' + mid.slice(-6) + '/' + monthYear;
                         v['ref_code'] = v['debit_code'];
                         v['credit_code'] = credit_code;
                         v['bus_type'] = 'INS';
@@ -1137,110 +1142,107 @@
                 }, 2000);
             }
 
-            function createTable(json) {
-                //
-                let fields = null;
-                let digit = "000000";
-                let counter = 0;
-                let codeNumber = null;
-                if (exceljson.length > 0) {
-                    fields = Object.keys(exceljson[0]);
-                    console.log(fields);
-                    // trim trailing spaces
-                    let first = true;
-                    $(json.result).find('tr').remove();
-                    let heading = ['S/N', 'period', 'username', 'client_code', 'first_name', 'trans_date', 'policy_code', 'start_date', 'end_date', 'subrisk_code', 'risk_code', 'subrisk_name', 'company_name', 'sum_insured', 'premium_rate', 'period_ratio', 'gross_premium', 'commission', 'vat', 'submit_by'];
-                    //
-                    $.each(exceljson, function(i, data) {
-                        counter++;
-                        let mid = digit + counter;
-                        codeNumber = "CL/SIB/" + mid.slice(-6) + "/23";
+            // function createTable(json) {
+            //     //
+            //     let fields = null;
+            //     let digit = "000000";
+            //     let counter = 0;
+            //     let codeNumber = null;
+            //     if (exceljson.length > 0) {
+            //         fields = Object.keys(exceljson[0]);
+            //         console.log(fields);
+            //         // trim trailing spaces
+            //         let first = true;
+            //         $(json.result).find('tr').remove();
+            //         let heading = ['S/N', 'period', 'username', 'client_code', 'first_name', 'trans_date', 'policy_code', 'start_date', 'end_date', 'subrisk_code', 'risk_code', 'subrisk_name', 'company_name', 'sum_insured', 'premium_rate', 'period_ratio', 'gross_premium', 'commission', 'vat', 'submit_by'];
+            //         //
+            //         $.each(exceljson, function(i, data) {
+            //             counter++;
+            //             let mid = digit + counter;
+            //             codeNumber = "CL/SIB/" + mid.slice(-6) + "/23";
                         
 
-                        let trans_date = moment(data['trans_date']).format('YYYY-MM-DD');
-                        let start_date = moment(data['start_date'], 'DD-MMM-YYYY').format('YYYY-MM-DD');
-                        let end_date = moment(data['end_date'], 'DD-MMM-YYYY').format('YYYY-MM-DD');
-                        data["submit_by"] = "isaac@safamdigital.com";
-                        data["code_number"] =  codeNumber;
+            //             let trans_date = moment(data['trans_date']).format('YYYY-MM-DD');
+            //             let start_date = moment(data['start_date'], 'DD-MMM-YYYY').format('YYYY-MM-DD');
+            //             let end_date = moment(data['end_date'], 'DD-MMM-YYYY').format('YYYY-MM-DD');
+            //             data["submit_by"] = "isaac@safamdigital.com";
+            //             data["code_number"] =  codeNumber;
 
-                        //
-                        let html = '';
-                        // heading
-                        if (first) {
-                            html = '<tr>';
-                            fields.forEach(function(v_, i_) {
-                                html += '<td >' + v_ + '</td>';
-                            });
-                            html += '</tr>';
-                            $('#result').append(html);
-                            first = false;
-                        }
-                        //
-                        html = '<tr class="row">';
-                        fields.forEach(function(v_, i_) {
-                            //
-                            if (typeof data[v_] === 'undefined') {
+            //             //
+            //             let html = '';
+            //             // heading
+            //             if (first) {
+            //                 html = '<tr>';
+            //                 fields.forEach(function(v_, i_) {
+            //                     html += '<td >' + v_ + '</td>';
+            //                 });
+            //                 html += '</tr>';
+            //                 $('#result').append(html);
+            //                 first = false;
+            //             }
+            //             //
+            //             html = '<tr class="row">';
+            //             fields.forEach(function(v_, i_) {
+            //                 //
+            //                 if (typeof data[v_] === 'undefined') {
 
-                                html += '<td></td>';
-                                return;
-                            }
-                            html += '<td>' + data[v_] + '</td>';
-                            $('#meta').html(i);
-                        });
-                        html += '</tr>';
-                        $(json.result).append(html);
+            //                     html += '<td></td>';
+            //                     return;
+            //                 }
+            //                 html += '<td>' + data[v_] + '</td>';
+            //                 $('#meta').html(i);
+            //             });
+            //             html += '</tr>';
+            //             $(json.result).append(html);
 
-                    });
-                }
+            //         });
+            //     }
 
-                    document.querySelector('#result').addEventListener('click', (event) => {
+            //         document.querySelector('#result').addEventListener('click', (event) => {
                       
-                        let row = {};
-                        row['func'] = 'savepolicy';
-                        //
-                        let elem = event.target.closest('tr');
-                        let tr = elem.children;
-                        let index = elem.rowIndex;
-                        //  console.log(index);return;
-                        if (index > 0) {
+            //             let row = {};
+            //             row['func'] = 'savepolicy';
+            //             //
+            //             let elem = event.target.closest('tr');
+            //             let tr = elem.children;
+            //             let index = elem.rowIndex;
+            //             //  console.log(index);return;
+            //             if (index > 0) {
 
-                            for (let i = 0; i < tr.length; i++) {
-                                //console.log(tr[i].innerText);
-                                row[fields[i]] = tr[i].innerText.replace(/'[^a-zA-Z0-9 _-]/g, '');
-                            }
+            //                 for (let i = 0; i < tr.length; i++) {
+            //                     //console.log(tr[i].innerText);
+            //                     row[fields[i]] = tr[i].innerText.replace(/'[^a-zA-Z0-9 _-]/g, '');
+            //                 }
 
-                            $.post(url, row, function(data) {
-                                // console.log(row);
-                                let current = $('#result').find('tr:eq(' + index + ')');
-                                //     //
-                                if (data.status) {
-                                    current.css({
-                                        'background-color': '#c4ffbd'
-                                    });
-                                } else if (data.message == 0 || data.status == false) {
-                                    // console.log(data.message);
-                                    current.css({
-                                        'background-color': 'rgb(247, 182, 179)'
-                                    });
-                                }
-                            }, 'JSON');
-                        }
-                        // console.log(row);
-                    })
+            //                 $.post(url, row, function(data) {
+            //                     // console.log(row);
+            //                     let current = $('#result').find('tr:eq(' + index + ')');
+            //                     //     //
+            //                     if (data.status) {
+            //                         current.css({
+            //                             'background-color': '#c4ffbd'
+            //                         });
+            //                     } else if (data.message == 0 || data.status == false) {
+            //                         // console.log(data.message);
+            //                         current.css({
+            //                             'background-color': 'rgb(247, 182, 179)'
+            //                         });
+            //                     }
+            //                 }, 'JSON');
+            //             }
+            //             // console.log(row);
+            //         })
 
-            }
+            // }
 
             // upload file
             function importexcel(event, json) {
-                // console.log(document.querySelector(".table-01 tr"));return;
-                // console.log($(json.excelfile)[0].files[0].name);return;
                 //
                 reset({});
                 
                 let regex = /^([a-zA-Z0-9\s_\\.\-:])+(.xlsx|.xls)$/;
                 /*Checks whether the file is a valid excel file*/
                 if (regex.test($(json.excelfile).val().toLowerCase())) {
-                    // console.log($(json.excelfile).val().toLowerCase().indexOf('.xlsx'));return;
                     let xlsxflag = false; /*Flag for checking whether excel is .xls format or .xlsx format*/
                     if ($(json.excelfile).val().toLowerCase().indexOf(".xlsx") > 0) {
                         xlsxflag = true;
@@ -1263,25 +1265,18 @@
                                     type: 'binary'
                                 });
                             }
-                            // console.log(workbook.Sheets['Sheet1']);
-                            /*Convert the cell value to Json*/
 
                             if (xlsxflag) {
-                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["2020"]);
+                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["JANUARY-JUNE"]);
                                 // clientsTable(json);
                                 // console.log(exceljson);
                             } else {
                                 // console.log("scared2");
                                 exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets[workbook.SheetNames[1]]);
                             }
-                            //console.log(exceljson);
-
-
                             //processLoad({});
                         }
                         if (xlsxflag) {
-                            /*If excel file is .xlsx extension than creates a Array Buffer from excel*/
-                            //console.log($(json.excelfile)[0]);return;
                             reader.readAsArrayBuffer($(json.excelfile)[0].files[0]);
                         } else {
                             reader.readAsBinaryString($(json.excelfile)[0].files[0]);
