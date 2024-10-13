@@ -507,6 +507,7 @@
             }
         }
 
+
         $sql = "SELECT t1.auto_id, t1.account_code, t1.account_name, t1.group_code, coalesce(t1.bank, '') as bank, t2.group_name, t2.range_min, t2.range_max, t2.base_code, t2.base_name, t2.dr_cr FROM act_account t1 LEFT JOIN (SELECT t21.group_code, t21.group_name, t21.range_min, t21.range_max, t22.base_code, t22.base_name, t22.dr_cr FROM act_group t21 LEFT JOIN act_base t22 ON t21.base_code = t22.base_code) t2 ON t1.group_code = t2.group_code WHERE 1=1 ";
         
         $db->query($sql);
@@ -520,126 +521,51 @@
         }
 
         
-        // var_dump($post['status']);exit;
-        $post['debit_account'] = $ledger_mapping->credit->debit_account;
-        $post['credit_account'] = $ledger_mapping->credit->credit_account;
-        $post['description'] = 'desc';
-        $post['branch_code'] = 'LAG/01/001';
-        $post['currency_code'] = 'NGN';
-        $post['currency_rate'] = '1';
+        $sql = "SELECT * FROM tec_policy_debit WHERE debit_code = '". $post['debit_code'] ."' ";
+        $db->query($sql);
+        $debit_note = $db->single();
+        $post['trans_info'] = $debit_note->description;
+        $post['ref_code'] = $debit_note->debit_code;
+        $post['trans_code'] = $post['receipt_code'];
+        $post['trans_type'] = "RCP";
+        // var_dump($post['trans_type']);exit;
         
-        $post['commission_'] =  $post['commission'] - ((7.5/100) * $post['commission']);
-        $post['vat_rate'] = 7.5;
-        $post['vat'] = 0.075 * $post['commission'];
-        $post['other_charge'] = $post['commission'] - ($post['commission_'] + $post['vat']);
-        
-        $post['premium_rate'] = $post['gross_premium'] / $post['sum_insured'] * 100 / $period_ratio;
-        $post['com_rate'] = $post['commission'] / $post['gross_premium'] * 100;
+        $post['debit_account'] = $ledger_mapping->{'rcp-online'}->debit_account;
+        $post['credit_account'] = $ledger_mapping->{'rcp-online'}->credit_account;
 
         try {
-            $sql = "INSERT INTO tec_policy_credit (`credit_code`,`ref_code`,`company_code`, `bank_account`, `debit_account`, `credit_account`,`trans_date`, `trans_mode`, `bus_type`, `status`, `description`, `bus_prop`, `submit_by`, `modified_by`, `approved_by`) VALUES ('" . $post['credit_code'] . "', '" . $post['ref_code'] . "', '" . $post['company_code'] . "', '" . $post['bank_account'] . "', '" . $post['debit_account'] . "', '" . $post['credit_account'] . "', '" . $post['trans_date'] . "', '" . $post['trans_mode'] . "', '" . $post['bus_type'] . "', '" . $post['status'] . "', '" . $post['description'] . "', '" . $post['bus_prop'] . "', '" . $post['submit_by'] . "', '" . $post['modified_by'] . "', '" . $post['approved_by'] . "')";
-            // var_dump($sql);exit;
+            $sql = "INSERT INTO tec_policy_receipt (`receipt_code`,`ref_code`,`debit_account`, `credit_account`, `gross_premium`, `trans_date`,`trans_mode`, `trans_info`, `bus_type`, `submit_by`, `modified_by`, `approved_by`) VALUES ('" . $post['receipt_code'] . "', '" . $post['ref_code'] . "', '" . $post['debit_account'] . "', '" . $post['credit_account'] . "', '" . $post['gross_premium'] . "', '" . $post['trans_date'] . "', '" . $post['trans_mode'] . "', '" . $post['trans_info'] . "', '" . $post['bus_type'] . "', '" . $post['submit_by'] . "', '" . $post['modified_by'] . "', '" . $post['approved_by'] . "')";
+            // 
             $db->query($sql);
             $res = $db->rowCount();
             if ($res > 0) {
-
+                // var_dump($res);exit;
                 $gl = clone (object)$post;
-                
-                $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
-                
+                        
+                $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'beneficiary', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
+            
                 // delete existing
-                $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$gl->credit_code}%' AND ref_code = '{$gl->ref_code}'");
+                $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$gl->receipt_code}%' AND ref_code = '{$gl->ref_code}'");
                 $db->execute();
-
-                
-                // credit | DR
-                $gl->account_code = $ledger_mapping->credit->debit_account;
+            
+                // debit-rcp | DR
+                $gl->account_code = $gl->debit_account;
                 $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                $gl->debit = $gl->net_amount;
+                $gl->debit = $gl->gross_premium;
                 $gl->credit = '0';
-                $gl->trans_code = $gl->credit_code;
-                $gl->trans_type = 'CN';
                 $gl->ref_detail = $gl->bus_type;
-                $gl->trans_detail = $gl->description;
-                
-                $sql =  $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
-        
-                // credit | CR
-                $gl->account_code = $ledger_mapping->credit->credit_account;
+                $gl->trans_detail = $gl->trans_info;
+            
+                $sql = $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
+            
+                // debit-rcp | CR
+                $gl->account_code = $ledger_mapping->{'debit'}->debit_account;
                 $gl->account_name = $accountChart->{$gl->account_code}->account_name;
                 $gl->debit = '0';
-                $gl->credit = $gl->net_amount;
-                
-                $sql .=  $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
-
-                if ($gl->commission_ > 0) {
-                
-                    // debit-com | DR
-                    $gl->account_code = $ledger_mapping->{'debit'}->credit_account;
-                    $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                    $gl->debit = $gl->commission_;
-                    $gl->credit = '0';
-                    $gl->trans_type = 'PYM';
-                    $gl->trans_code = $gl->credit_code . '-COM';
-                
-                    $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
-                
-                    // debit-com | CR
-                    $gl->account_code = $ledger_mapping->{'debit-com'}->debit_account;
-                    $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                    $gl->debit = '0';
-                    $gl->credit = $gl->commission_;
-                
-                    $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
-                
-                }
-
-                if ($gl->vat > 0) {
-                
-                    // debit-vat | DR
-                    $gl->account_code = $ledger_mapping->{'debit'}->credit_account;
-                    $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                    $gl->debit = $gl->vat;
-                    $gl->credit = '0';
-                    $gl->trans_type = 'VAT';
-                    $gl->trans_code = $gl->credit_code . '-VAT';
-                
-                    $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
-                
-                    // debit-vat | CR
-                    $gl->account_code = $ledger_mapping->{'debit-vat'}->debit_account;
-                    $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                    $gl->debit = '0';
-                    $gl->credit = $gl->vat;
-                
-                    $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
-                
-                }
-
-                if ($gl->other_charge > 0) {
-                
-                    // debit-chg | DR
-                    $gl->account_code = $ledger_mapping->{'debit'}->credit_account;
-                    $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                    $gl->debit = $gl->other_charge;
-                    $gl->credit = '0';
-                    $gl->trans_type = 'CHG';
-                    $gl->trans_code = $gl->credit_code . '-CHG';
-                
-                    $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
-                
-                    // debit-chg | CR
-                    $gl->account_code = $ledger_mapping->{'debit-chg'}->debit_account;
-                    $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                    $gl->debit = '0';
-                    $gl->credit = $gl->other_charge;
-                
-                    $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
+                $gl->credit = $gl->gross_premium;
             
-                }
-
-                //echo json_encode(array('status' => false, 'message' => $sql)); exit;
-                // var_dump($sql);exit;
+                $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
+            
                 $db->query($sql);
                 $db->execute();
 
@@ -655,115 +581,6 @@
             exit;
         }
     }
-
-
-
-    // if ($post['func'] == 'process') {
-    //     // client exists
-    //     // INSERT INTO `tec_client` (`username`, `submit_by`, `submit_on`, `modified_by`, `modified_on`, `first_name`, `last_name`, `middle_name`, `title`, `religion`, `address`, `town`, `phone`, `email2`, `phone2`, `birth_date`, `gender`, `marital_status`, `occupation`, `state`, `country`, `sector`, `business`, `bvn_number`, `id_type`, `id_number`, `picture`, `client_code`, `agent_code`, `username2`, `doc_path`) VALUES ('kidudu@me.com', '$2a$14$ftFb8O5YTp6unJu8ztBzxeXJAEcy7PzaqzL62HT2MBFSeBZlDdC3G', '$2a$14$ftFb8O5YTp6unJu8ztBzxeXJAEcy7PzaqzL62HT2MBFSeBZlDdC3G', NULL, NULL, 0, '2021-04-20 10:39:16', '2021-04-20 10:39:18', '2021-04-20 10:39:22', NULL, NULL, NULL, '1', NULL, 'echezona.i@epicureinsurancebrokers.com', '2021-04-20 10:39:18', NULL, '2021-04-20 10:39:22', 'OGHENAKPOBO', 'IDUDU', NULL, 'Mr.', 'Christianity', 'C5 Millenium Homes Estate, Oniru, Victoria Island, Lagos.', NULL, '2348037181014', NULL, NULL, '1974-09-08', 'Male', 'Married', 'Law and legal', 'Lagos', 'Nigeria', 'Private', 'Individual', NULL, 'PASSPORT', 'A50488533', NULL, 'C/21/000221', 'A/20/000003', 'Oluwatobi.O@epicureinsurancebrokers.com', 'cda37f2c-ef31-4ea5-9e48-9e073227e296');
-
-    //     $post['first_name'] = str_replace(' & ', 'AND', str_replace('&AMP;', 'AND', $post['first_name']));
-
-    //     $sql = "SELECT client_code FROM tec_client WHERE first_name = '" . addslashes($post['first_name']) . "' OR first_name = '" . addslashes(trim($post['first_name'])) . "' OR TRIM(CONCAT(COALESCE(title, ''), ' ', COALESCE(first_name, ''), ' ', COALESCE(last_name, ''))) LIKE '%" . addslashes(trim($post['first_name'])) . "%' LIMIT 1";
-    //     // echo json_encode(array('status' => false, 'message' => $sql)); exit;
-    //     $db->query($sql);
-    //     $client = $db->single();
-    //     if ($client) {
-    //         $post['client_code'] = $client->client_code;
-    //     } else {
-    //         $sql = "INSERT INTO tec_client (`username`, `submit_by`, `submit_on`, `modified_by`, `modified_on`, `first_name`, `client_code`, `agent_code`) VALUES ('" . $post['username'] . "', '" . $post['submit_by'] . "', '" . $post['submit_on'] . "', '" . $post['modified_by'] . "', '" . $post['modified_on'] . "', '" . $post['first_name'] . "', '" . $post['client_code'] . "', '" . $post['agent_code'] . "')";
-    //         $db->query($sql);
-    //         try {
-    //             $db->execute();
-    //         } catch (PDOException $e) {
-    //             echo json_encode(array('status' => false, 'message' => $e->getMessage() . ' ( ' . $sql . ' )'));
-    //             exit;
-    //         }
-    //     }
-    //     //echo json_encode(array('status' => false, 'message' => $sql)); exit;
-
-    //     // policy
-    //     // INSERT INTO `tec_policy` (`policy_code`, `client_code`, `agent_code`, `agent_prop`, `agent_code2`, `agent_prop2`, `agent_code3`, `agent_prop3`, `trans_date`, `subrisk_code`, `branch_code`, `status`, `submit_by`, `submit_on`, `modified_by`, `modified_on`, `description`, `referral`, `proposal_code`, `doc_path`, `manual_upload`) VALUES ('FSP/F/LA/000010/21', 'C/21/000222', 'A/20/000003', '100', NULL, '0', NULL, '0', '2021-05-14 00:00:00', 'S003', 'LAG/01/001', '1', 'Sarah.e@epicureinsurancebrokers.com', '2021-05-14 17:08:17', 'femi.fapohunda@gmail.com', '2021-05-21 17:09:26', NULL, NULL, NULL, 'f16f2757-9f17-4fe8-b88b-2f88c8754b1d', NULL);
-
-    //     $post['subrisk_code'] = $array_risk[$post['subrisk_name']]['subrisk_code'];
-    //     //echo json_encode(array('status' => false, 'message' => $post)); exit;
-
-    //     $sql = "SELECT policy_code FROM tec_policy WHERE policy_code = '" . addslashes($post['policy_code']) . "' LIMIT 1";
-    //     // echo json_encode(array('status' => false, 'message' => $sql)); exit;
-    //     $db->query($sql);
-    //     $policy = $db->single();
-    //     if ($policy) {
-    //         $post['policy_code'] = $policy->policy_code;
-    //     } else {
-    //         $sql = "INSERT INTO tec_policy (`policy_code`, `client_code`, `agent_code`, `agent_prop`, `trans_date`, `subrisk_code`, `branch_code`, `submit_by`, `submit_on`, `modified_by`, `modified_on`) VALUES ('" . $post['policy_code'] . "', '" . $post['client_code'] . "', '" . $post['agent_code'] . "', '100', '" . $post['trans_date'] . "', '" . $post['subrisk_code'] . "', 'LAG/01/001', '" . $post['submit_by'] . "', '" . $post['submit_on'] . "', '" . $post['modified_by'] . "', '" . $post['modified_on'] . "')";
-    //         //echo json_encode(array('status' => false, 'message' => $sql)); exit;
-    //         $db->query($sql);
-    //         try {
-    //             $db->execute();
-    //         } catch (PDOException $e) {
-    //             echo json_encode(array('status' => false, 'message' => $e->getMessage() . ' ( ' . $sql . ' )'));
-    //             exit;
-    //         }
-    //     }
-
-    //     // debit
-    //     // INSERT INTO `tec_policy_debit` (`debit_code`, `ref_code`, `policy_code`, `client_code`, `agent_code`, `agent_prop`, `agent_code2`, `agent_prop2`, `agent_code3`, `agent_prop3`, `bank_account`, `debit_account`, `credit_account`, `trans_date`, `trans_mode`, `trans_info`, `subrisk_code`, `branch_code`, `start_date`, `end_date`, `bus_type`, `status`, `description`, `schedule`, `referral`, `sum_insured`, `premium_rate`, `gross_premium`, `com_rate`, `vat_rate`, `other_charge`, `credit_balance`, `currency_code`, `currency_rate`, `submit_by`, `submit_on`, `modified_by`, `modified_on`, `approved_by`, `approved_on`, `policy_detail`, `manual_upload`) VALUES ('DN/LA/000133/21', 'DN/LA/000133/21', 'FSP/F/LA/000010/21', 'C/21/000222', 'A/20/000003', '100', NULL, '0', NULL, '0', '0085284440 (Access Bank)', '1001002', '4001002', '2021-05-14 00:00:00', 'Transfer', NULL, 'S003', 'LAG/01/001', '2021-05-14 00:00:00', '2022-01-03 00:00:00', 'NEW', '1', 'Being premium for Fire and Special perils insurance cover for BARAKAT Nigeria Limited Warehouse Located at No 64,Town Planning way, Ilupeju, Lagos for one year ', '[]', NULL, 115642200.0000, 0.144, 166524.7700, 20, 7.5, 0.0000, 100000.0000, 'NGN', 1, 'Sarah.e@epicureinsurancebrokers.com', '2021-05-14 17:10:38', 'femi.fapohunda@gmail.com', '2021-05-21 17:14:05', 'femi.fapohunda@gmail.com', '2021-05-14 17:10:38', NULL, NULL);
-
-    //     $post['subrisk_code'] = $array_risk[$post['subrisk_name']]['subrisk_code'];
-    //     $post['ref_code'] = $post['debit_code'];
-
-    //     $post['start_date'] = date('Y-m-d', strtotime($post['trans_date']));
-    //     $post['end_date'] = date('Y-m-d', strtotime($post['start_date'] . ' +' . floatval($post['duration']) . ' month'));
-
-    //     $post['com_rate'] = $post['gross_premium'] > 0 ? (round($post['commission'] / $post['gross_premium'] * 100 * 10000) / 10000) : '0';
-    //     $post['vat_rate'] = $post['commission'] > 0 ? (round($post['vat'] / $post['commission'] * 100 * 10000) / 10000) : '0';
-
-    //     $post['approved_by'] = $post['submit_by'];
-    //     $post['approved_on'] = $post['submit_on'];
-    //     //echo json_encode(array('status' => false, 'message' => $post)); exit;
-
-    //     $sql = "SELECT debit_code FROM tec_policy_debit WHERE debit_code = '" . addslashes($post['debit_code']) . "' LIMIT 1";
-    //     // echo json_encode(array('status' => false, 'message' => $sql)); exit;
-    //     $db->query($sql);
-    //     $debit = $db->single();
-    //     if ($debit) {
-    //         $post['debit_code'] = $debit->debit_code;
-    //     } else {
-    //         $sql = "INSERT INTO tec_policy_debit (`debit_code`, `ref_code`, `policy_code`, `client_code`, `agent_code`, `agent_prop`, `debit_account`, `credit_account`, `trans_date`, `trans_mode`, `subrisk_code`, `branch_code`, `start_date`, `end_date`, `bus_type`, `sum_insured`, `premium_rate`, `gross_premium`, `com_rate`, `vat_rate`, `submit_by`, `submit_on`, `modified_by`, `modified_on`, `approved_by`, `approved_on`) VALUES ('" . $post['debit_code'] . "', '" . $post['ref_code'] . "', '" . $post['policy_code'] . "', '" . $post['client_code'] . "', '" . $post['agent_code'] . "', '100', '1001002', '4001003', '" . $post['trans_date'] . "', 'Transfer', '" . $post['subrisk_code'] . "', 'LAG/01/001', '" . $post['start_date'] . "', '" . $post['end_date'] . "', 'NEW', '" . $post['sum_insured'] . "', '" . $post['premium_rate'] . "', '" . $post['gross_premium'] . "', '" . $post['com_rate'] . "', '" . $post['vat_rate'] . "', '" . $post['submit_by'] . "', '" . $post['submit_on'] . "', '" . $post['modified_by'] . "', '" . $post['modified_on'] . "', '" . $post['approved_by'] . "', '" . $post['approved_on'] . "')";
-    //         //echo json_encode(array('status' => false, 'message' => $sql)); exit;
-    //         $db->query($sql);
-    //         try {
-    //             $db->execute();
-    //         } catch (PDOException $e) {
-    //             echo json_encode(array('status' => false, 'message' => $e->getMessage() . ' ( ' . $sql . ' )'));
-    //             exit;
-    //         }
-    //     }
-
-    //     // receipt
-    //     // INSERT INTO `tec_policy_receipt` (`receipt_code`, `ref_code`, `debit_account`, `credit_account`, `gross_premium`, `trans_date`, `trans_mode`, `trans_info`, `bus_type`, `status`, `description`, `submit_by`, `submit_on`, `modified_by`, `modified_on`, `approved_by`, `approved_on`, `manual_upload`) VALUES ('R/1/000027/21', 'DN/LA/000128/21', '1010002', '4001002', 4828.0000, '2021-05-09 00:00:00', 'Transfer', '1234567', 'RCP', '1', NULL, 'Sarah.e@epicureinsurancebrokers.com', '2021-05-14 13:30:06', 'Sarah.e@epicureinsurancebrokers.com', '2021-05-14 13:30:06', 'Sarah.e@epicureinsurancebrokers.com', '2021-05-14 13:30:06', NULL);
-
-    //     $sql = "SELECT receipt_code FROM tec_policy_receipt WHERE receipt_code = '" . addslashes($post['receipt_code']) . "' LIMIT 1";
-    //     // echo json_encode(array('status' => false, 'message' => $sql)); exit;
-    //     $db->query($sql);
-    //     $receipt = $db->single();
-    //     if ($receipt) {
-    //         $post['receipt_code'] = $receipt->receipt_code;
-    //     } else {
-    //         $sql = "INSERT INTO tec_policy_receipt (`receipt_code`, `ref_code`, `debit_account`, `credit_account`, `gross_premium`, `trans_date`, `trans_mode`, `bus_type`, `submit_by`, `submit_on`, `modified_by`, `modified_on`, `approved_by`, `approved_on`) VALUES ('" . $post['receipt_code'] . "', '" . $post['ref_code'] . "', '1001002', '4001003', '" . $post['gross_premium'] . "', '" . $post['trans_date'] . "', 'Transfer', 'RCP', '" . $post['submit_by'] . "', '" . $post['submit_on'] . "', '" . $post['modified_by'] . "', '" . $post['modified_on'] . "', '" . $post['approved_by'] . "', '" . $post['approved_on'] . "')";
-    //         //echo json_encode(array('status' => false, 'message' => $sql)); exit;
-    //         $db->query($sql);
-    //         try {
-    //             $db->execute();
-    //         } catch (PDOException $e) {
-    //             echo json_encode(array('status' => false, 'message' => $e->getMessage() . ' ( ' . $sql . ' )'));
-    //             exit;
-    //         }
-    //     }
-
-    //     echo json_encode(array('status' => true, 'data' => 'DATA SAVED'));
-    //     exit;
-    // }
 
 
 ?>
