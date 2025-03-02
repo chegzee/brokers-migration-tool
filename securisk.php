@@ -87,7 +87,7 @@
     }
 
     else if (($post['func'] ?? '') == 'savedebit' || ($post['func'] ?? '') == 'autodebit') {
-        // echo json_encode($post["gross_premium"] == 0);exit;
+        // echo json_encode($post["commission"]);exit;
         $prem = $post["gross_premium"] == 0;
         $comm = $post["commission"] == 0;
         $sum_in = $post["sum_insured"] == 0;
@@ -133,7 +133,6 @@
             exit;
         }
 
-        // var_dump($policy->DN);exit;
         $post_start_date = strtotime($post['start_date']);
         $post_end_date = strtotime($post['end_date']);
         $default_period = ($post_end_date - strtotime($post['end_date'] . '-1 year +1 day')) / (60*60*24);
@@ -147,7 +146,6 @@
         }
         // $start_date = strtotime($policy->DN->start_date);
         // $end_date = strtotime($policy->DN->end_date);
-        // echo json_encode($start_date);exit;
         
         if(empty($policy->DN)){
             $post['bus_type'] = 'NEW';
@@ -177,8 +175,9 @@
         $post['vat_rate'] = 7.5;
         
         $post['premium_rate'] = $post['gross_premium'] / $post['sum_insured'] * 100 / $period_ratio;
-        
+        // var_dump($post['commission']);exit;
         $post['com_rate'] = ($post['commission'] * 100) / (1.075 * $post['gross_premium']);
+        // var_dump($post['com_rate']);exit;
         $post['commission_'] =  ($post['com_rate']/100) * $post['gross_premium'];
         $post['vat'] = 0.075 * $post['commission_'];
         $post['other_charge'] = 0;
@@ -699,8 +698,8 @@
                         <td onclick="clientsTable({result: '#result'})" style="cursor:pointer;"> Clients </td>
                         <td onclick="policyTable({result: '#result'})" style="cursor:pointer;"> policy </td>
                         <td onclick="debitTable({result: '#result'})" style="cursor:pointer;"> debit </td>
-                        <td onclick="receiptTable({result: '#result'})" style="cursor:pointer;"> receipt </td>
                         <td onclick="creditTable({result: '#result'})" style="cursor:pointer;"> credit </td>
+                        <td onclick="receiptTable({result: '#result'})" style="cursor:pointer;"> receipt </td>
                         <td onclick="paymentTable({result: '#result'})" style="cursor:pointer;"> payment </td>
                         <!-- <td onclick="debitTable({result: '#result'})" style="cursor:pointer;"> debit </td> -->
                     </tr>
@@ -1209,6 +1208,7 @@
                     });
                     html += '</tr>';
                     $(json.result + " > thead").append(html);
+
                     excel_data = excel_data.map(function(v, i) { 
                         let sumInsured = parseFloat(v['sum_insured']);
                         // v['rowNumber'] = i;
@@ -1379,11 +1379,11 @@
                             }
 
                             if (xlsxflag) {
-                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["2025"]);
-                                // console.log(exceljson);
+                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["2024"]);
+                                console.log(exceljson);
                             } else {
-                                exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets["2025"]);
-                                // console.log(exceljson);
+                                exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets["2024"]);
+                                console.log(exceljson);
                             }
                         }
                         if (xlsxflag) {
@@ -1414,7 +1414,7 @@
                 alreadyExist = 0;
                 document.querySelector('#alreadyExist').innerText = alreadyExist;
                 document.querySelector('#saved').innerText = savedCount
-                rows = Object.values(excel_data);
+                rows = excel_data;
                 dataUpload({})
                 
             }
