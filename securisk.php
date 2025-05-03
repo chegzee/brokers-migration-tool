@@ -5,16 +5,17 @@
 
     
     $post = filter_input_array(INPUT_POST);
-    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_fsl');
+    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_afriglobal');
     $sqlQuery = new SqlQuery();
-    $sql = "SELECT t1.auto_id, t1.subrisk_code, t1.subrisk_name, t1.alpha, t1.digit, t1.def_premium_rate, t1.def_com_rate, t1.risk_code, t1.status, t2.risk_name, LEFT(t1.modified_on, 16) modified_on FROM cod_subrisk t1 LEFT JOIN (SELECT t21.risk_code, t21.risk_name FROM cod_risk t21) t2 ON t1.risk_code = t2.risk_code WHERE 1=1 ";
+    $sql = "SELECT t1.auto_id, t1.subrisk_code, t1.subrisk_name, t1.alpha, t1.digit, t1.def_premium_rate, t2.premium_rate, t2.com_rate, t2.vat_rate, t1.def_com_rate, t1.risk_code, t1.status, t2.risk_name, LEFT(t1.modified_on, 16) modified_on FROM cod_subrisk t1 LEFT JOIN (SELECT t21.risk_code, t21.risk_name, t21.premium_rate, t21.com_rate, t21.vat_rate FROM cod_risk t21) t2 ON t1.risk_code = t2.risk_code WHERE 1=1 ";
     //
     $db->query($sql);
     $rows = $db->resultSet(); 
+    // var_dump($rows);exit;
     $subriskObj = (object)array();
     if ($rows !== false) {
         foreach ($rows as $v) {
-            $subriskObj->{$v->subrisk_name} = ["subrisk_code" =>$v->subrisk_code, "risk_code" =>$v->risk_code];
+            $subriskObj->{strtolower($v->subrisk_name)} = ["subrisk_code" =>$v->subrisk_code, "risk_code" =>$v->risk_code, "alpha"=>$v->alpha,  "digit"=>$v->digit, "premium_rate"=>$v->premium_rate, "com_rate"=>$v->com_rate, "vat_rate"=>$v->vat_rate ];
         }
     }
     // var_dump($subriskObj);exit;
@@ -25,6 +26,8 @@
     
     $db->query($sql);
     $rows = $db->resultSet();
+    // echo(json_encode($rows));exit;
+
     $insurersObj = (object)array();
     if ($rows !== false) {
         foreach ($rows as $v) {
@@ -41,6 +44,7 @@
          VALUES ('" . $post['username'] . "', '" . $post['agent_code'] . "', '" . $post['title'] . "', '" . $post['first_name'] . "', '" . $post['last_name'] . "', '" . $post['middle_name'] . "', '" . $post['address'] . "', '" . $post['religion'] . "', '" . $post['phone'] . "', '" . $post['client_code'] . "', '" . $post['submit_by'] . "', '" . $post['submit_on'] . "', '" . $post['modified_by'] . "', '" . $post['modified_on'] . "', '" . $post['occupation'] . "', '" . $post['state'] . "', '" . $post['country'] . "' , '" . $post['id_type'] . "', '" . $post['id_number'] . "' , '" . $post['business'] . "', '" . $post['username2'] . "', '" . $post['registered_date'] . "', '" . $post['birth_date'] . "', '" . $post['gender'] . "', '" . $post['marital_status'] . "' )";
         try {
             $db->query($sql);
+            // $res = $db->execute();
             $res = $db->rowCount();
             
             if ($res > 0) {
@@ -70,6 +74,7 @@
         //
         try {
                 $db->query($sql);
+                // $res = $db->execute();
                 $res = $db->rowCount();
                 if ($res > 0) {
                     echo json_encode(array('status' => true, 'message ' => $res, 'msg' => $post));
@@ -88,6 +93,12 @@
 
     else if (($post['func'] ?? '') == 'savedebit' || ($post['func'] ?? '') == 'autodebit') {
         // echo json_encode($post["commission"]);exit;
+        // $post['sum_insured'] = ($post['gross_premium'] * 100) / $post['premium_rate'];
+        // if($post['risk_code'] === 'V'){
+        //     $post['com_rate'] = 12.5;
+        // }else{
+        //     $post['com_rate'] = 20;
+        // }
         $prem = $post["gross_premium"] == 0;
         $comm = $post["commission"] == 0;
         $sum_in = $post["sum_insured"] == 0;
@@ -133,17 +144,17 @@
             exit;
         }
 
-        $post_start_date = strtotime($post['start_date']);
-        $post_end_date = strtotime($post['end_date']);
-        $default_period = ($post_end_date - strtotime($post['end_date'] . '-1 year +1 day')) / (60*60*24);
-        // $default_period = $post_end_date - strtotime(date('Y-m-d', strtotime($post['end_date'] . '-1 year +1 day'))) / (60*60*24);
-        $period = round(($post_end_date - $post_start_date) / (60*60*24));
-        $period_ratio = $period / $default_period;
+        // $post_start_date = strtotime($post['start_date']);
+        // $post_end_date = strtotime($post['end_date']);
+        // $default_period = ($post_end_date - strtotime($post['end_date'] . '-1 year +1 day')) / (60*60*24);
+        // // $default_period = $post_end_date - strtotime(date('Y-m-d', strtotime($post['end_date'] . '-1 year +1 day'))) / (60*60*24);
+        // $period = round(($post_end_date - $post_start_date) / (60*60*24));
+        // $period_ratio = $period / $default_period;
         
-        if($period_ratio == 0){
-            echo json_encode(array('status' => false, 'message ' => $v, "td_cell" => "#start_date"));
-            exit;
-        }
+        // if($period_ratio == 0){
+        //     echo json_encode(array('status' => false, 'message ' => $v, "td_cell" => "#start_date"));
+        //     exit;
+        // }
         // $start_date = strtotime($policy->DN->start_date);
         // $end_date = strtotime($policy->DN->end_date);
         
@@ -152,36 +163,41 @@
             $post['ref_code'] = $post['debit_code'];
             $post["description"] = "BEING PREMIUM PAID ON POLICY " . $post['policy_code'];
         }else{
-            $start_date = strtotime($policy->DN->start_date);
-            $end_date = strtotime($policy->DN->end_date);
+
+            $post['bus_type'] = 'REN';
+            // $post['ref_code'] = $post['debit_code'];
+            $post['ref_code'] = $policy->DN->ref_code;
+            $post['description'] = "BEING RENEWAL PREMIUM ON POLICY " . $policy->policy_code;
+
+            // $start_date = strtotime($policy->DN->start_date);
+            // $end_date = strtotime($policy->DN->end_date);
             
-            if($post_start_date > $end_date && ($post_end_date > $end_date && $post_end_date > $start_date )){
-                $post['bus_type'] = 'REN';
-                // $post['ref_code'] = $post['debit_code'];
-                $post['ref_code'] = $policy->DN->ref_code;
-                $post['description'] = "BEING RENEWAL PREMIUM ON POLICY " . $policy->policy_code;
+            // if($post_start_date > $end_date && ($post_end_date > $end_date && $post_end_date > $start_date )){
+            //     $post['bus_type'] = 'REN';
+            //     // $post['ref_code'] = $post['debit_code'];
+            //     $post['ref_code'] = $policy->DN->ref_code;
+            //     $post['description'] = "BEING RENEWAL PREMIUM ON POLICY " . $policy->policy_code;
 
-            }else if(($post_start_date > $start_date && $post_start_date <= $end_date) && ($post_end_date === $end_date) ){
-                $post['bus_type'] = 'ADD';
-                $post['ref_code'] = $policy->DN->ref_code;
-                $post['description'] = "BEING PREMIUM PAID ON POLICY " . $policy->policy_code;
-            }else{
-                echo json_encode(array('status' => false, "msg"=>"Wrong period", "db"=>$policy->DN));
-                exit;
+            // }else if(($post_start_date > $start_date && $post_start_date <= $end_date) && ($post_end_date === $end_date) ){
+            //     $post['bus_type'] = 'ADD';
+            //     $post['ref_code'] = $policy->DN->ref_code;
+            //     $post['description'] = "BEING PREMIUM PAID ON POLICY " . $policy->policy_code;
+            // }else{
+            //     echo json_encode(array('status' => false, "msg"=>"Wrong period", "db"=>$policy->DN));
+            //     exit;
 
-            }
+            // }
         }
         
-        $post['vat_rate'] = 7.5;
+        // $post['vat_rate'] = 7.5;
         
-        $post['premium_rate'] = $post['gross_premium'] / $post['sum_insured'] * 100 / $period_ratio;
+        // $post['premium_rate'] = $post['gross_premium'] / $post['sum_insured'] * 100 / $period_ratio;
         // var_dump($post['commission']);exit;
-        $post['com_rate'] = ($post['commission'] * 100) / (1.075 * $post['gross_premium']);
+        // $post['com_rate'] = ($post['commission'] * 100) / (1.075 * $post['gross_premium']);
         // var_dump($post['com_rate']);exit;
-        $post['commission_'] =  ($post['com_rate']/100) * $post['gross_premium'];
-        $post['vat'] = 0.075 * $post['commission_'];
+        // $post['commission_'] =  ($post['com_rate']/100) * $post['gross_premium'];
+        // $post['vat'] = 0.075 * $post['commission_'];
         $post['other_charge'] = 0;
-        // var_dump($post);exit;
         
         $sql = "SELECT t1.auto_id, t1.item, t1.branch_code, t1.risk_code, t1.debit_account, t1.credit_account FROM sys_tec_act t1 WHERE t1.branch_code = 'LAG/01/001' ";
         $sql .= "AND t1.risk_code = '" . $post['risk_code'] . "' ";
@@ -216,6 +232,7 @@
             $db->query($sql);
             $res = $db->rowCount();
             // $res = $db->execute();
+            // var_dump($res);exit;
             //    echo json_encode($res);exit;
             if ($res > 0) {
 
@@ -322,10 +339,36 @@
     }
 
     else if (($post['func'] ?? '') == 'savecredit' || ($post['func'] ?? '') == 'autocredit') {
-        $post['debit_account'] = "1103118";
-        $post['credit_account'] = "2006102";
-        $post['description'] = 'desc';
-        // echo json_encode($post['ref_code']);exit;
+        
+        $sql = "SELECT t1.auto_id, t1.item, t1.branch_code, t1.risk_code, t1.debit_account, t1.credit_account FROM sys_tec_act t1 WHERE t1.branch_code = 'LAG/01/001' ";
+        $sql .= "AND t1.risk_code = '" . $post['risk_code'] . "' ";
+        $db->query($sql);
+        $row = $db->resultSet();
+        $ledger_mapping = (object)array();
+        if (!empty($row)) {
+            foreach ($row as $v) {
+                $ledger_mapping->{$v->item} = $v;
+            }
+        }
+        $post['debit_account'] = $ledger_mapping->credit->debit_account;
+        $post['credit_account'] = $ledger_mapping->credit->credit_account;
+        $post["description"] = "BEING PREMIUM ON POLICY " . $post['policy_code'];
+        // var_dump($post['company_code']);exit;
+        $sql = "SELECT t1.auto_id, t1.account_code, t1.account_name, t1.group_code, coalesce(t1.bank, '') as bank, t2.group_name, t2.range_min, t2.range_max, t2.base_code, t2.base_name, t2.dr_cr FROM act_account t1 LEFT JOIN (SELECT t21.group_code, t21.group_name, t21.range_min, t21.range_max, t22.base_code, t22.base_name, t22.dr_cr FROM act_group t21 LEFT JOIN act_base t22 ON t21.base_code = t22.base_code) t2 ON t1.group_code = t2.group_code WHERE 1=1 ";
+        
+        // $db->query($sql);
+        // $row = $db->resultSet();
+    
+        // $accountChart = (object)array();
+        // if (!empty($row)) {
+        //     foreach ($row as $v) {
+        //         $accountChart->{$v->account_code} = $v;
+        //     }
+        // }
+        // $post['debit_account'] = "1103118";
+        // $post['credit_account'] = "2006102";
+        // $post['description'] = 'desc';
+        // echo json_encode($post['risk_code']);exit;
         try {
             $sql = "INSERT INTO tec_policy_credit (`credit_code`,`ref_code`,`company_code`, `bank_account`, `debit_account`, `credit_account`,`trans_date`, `trans_mode`, `bus_type`, `status`, `description`, `bus_prop`, `submit_by`, `modified_by`, `approved_by`) VALUES ('" . $post['credit_code'] . "', '" . $post['ref_code'] . "', '" . $post['company_code'] . "', '" . $post['bank_account'] . "', '" . $post['debit_account'] . "', '" . $post['credit_account'] . "', '" . $post['trans_date'] . "', '" . $post['trans_mode'] . "', '" . $post['bus_type'] . "', '" . $post['status'] . "', '" . $post['description'] . "', '" . $post['bus_prop'] . "', '" . $post['submit_by'] . "', '" . $post['modified_by'] . "', '" . $post['approved_by'] . "')";
             $db->query($sql);
@@ -499,7 +542,7 @@
             $db->query($sql);
             $res = $db->rowCount();
             // $res = $db->execute();
-        // echo json_encode($res);exit;
+            // echo json_encode($res);exit;
             
             
             if ($res > 0) {
@@ -588,9 +631,9 @@
         $post['ref_code'] = $credit_note->credit_code;
         $post['trans_code'] = $post['payment_code'];
         $post['trans_type'] = "PYM";
-        $post['credit_account'] = "1103118";
+        $post['credit_account'] = "2000004";
         
-        $post['debit_account'] = "2006102";
+        $post['debit_account'] = "2000002";
         // $post['debit_account'] = $ledger_mapping->{'credit'}->credit_account;
             // var_dump($post);exit;
             // echo json_encode($post);exit;
@@ -600,6 +643,7 @@
             // 
             // var_dump($sql);exit;
             $db->query($sql);
+            // $res = $db->execute();
             $res = $db->rowCount();
             // echo json_encode($res);exit;
             
@@ -647,9 +691,49 @@
         }
     }
 
+    else if (($post['func'] ?? '') == 'savecompany'){
+        $sql = "INSERT INTO tec_company (`username`,`password`, `submit_by`, `company_code`, `company_type`, `company_name`, `address`, `country`, `phone` , `contact`) VALUES ('" . $post['username'] . "', '" . $post['password'] . "', '" . $post['submit_by'] . "', '" . $post['company_code'] . "', '" . $post['company_type']. "', '" . $post['company_name']. "', '" . $post['address'] . "', '" . $post['country'] . "', '" . $post['phone'] . "', '" . $post['contact'] . "')";
+        // var_dump($sql);exit;
+        try {
+            $db->query($sql);
+            // $res = $db->execute();
+            $res = $db->rowCount();
+            
+            if ($res > 0) {
+                echo json_encode(array('status' => true, 'message ' => $res, 'msg' => $post));
+                exit;
+            } else {
 
+                echo json_encode(array('status' => false, "my"=>"scared", 'message ' => $res, 'msg' => $post));
+                exit;
+            }
+        } catch (PDOException $e) {
+            echo json_encode(array('status' => false, 'message' => $e->getMessage() . ' ( ' . $sql . ' )'));
+            exit;
+        }
+    }
 
+    else if (($post['func'] ?? '') == 'savesubrisk'){
+        $sql = "INSERT INTO cod_subrisk (`subrisk_code`,`subrisk_name`, `risk_code`, `alpha`, `digit`, `submit_by`, `modified_by`) VALUES ('" . $post['subrisk_code'] . "', '" . $post['subrisk_name'] . "', '" . $post['risk_code'] . "', '" . $post['alpha'] . "', '" . $post['digit']. "', '" . $post['submit_by']. "', '" . $post['modified_by'] . "')";
+        // var_dump($sql);exit;
+        try {
+            $db->query($sql);
+            // $res = $db->execute();
+            $res = $db->rowCount();
+            
+            if ($res > 0) {
+                echo json_encode(array('status' => true, 'message ' => $res, 'msg' => $post));
+                exit;
+            } else {
 
+                echo json_encode(array('status' => false, "my"=>"scared", 'message ' => $res, 'msg' => $post));
+                exit;
+            }
+        } catch (PDOException $e) {
+            echo json_encode(array('status' => false, 'message' => $e->getMessage() . ' ( ' . $sql . ' )'));
+            exit;
+        }
+    }
 
 ?>
 <!doctype html>
@@ -695,6 +779,8 @@
                         <td id="action_name"></td>
                     </tr>
                     <tr>
+                        <td onclick="companyTable({result: '#result'})" style="cursor:pointer;"> insurers </td>
+                        <td onclick="subriskTable({result: '#result'})" style="cursor:pointer;"> subrisk </td>
                         <td onclick="clientsTable({result: '#result'})" style="cursor:pointer;"> Clients </td>
                         <td onclick="policyTable({result: '#result'})" style="cursor:pointer;"> policy </td>
                         <td onclick="debitTable({result: '#result'})" style="cursor:pointer;"> debit </td>
@@ -762,8 +848,205 @@
             const insurersObj = <?php echo json_encode($insurersObj) ?>;
             // console.log(subriskObj);
 
+            let companyTable = (json)=>{
+                // console.log(json);return;
+                reset({});
+                document.querySelector('#saved').innerText = 0;
+                document.querySelector('#alreadyExist').innerText = 0
+                action = "savecompany";
+                $("#action_name").html("company saving");
+                let counter = 0;
+                let fields = null;
+                if(exceljson.length > 0){
+                    fields = Object.keys(exceljson[0]);
+                }
+
+                //clean the table
+                $(json.result + " > thead").find('tr').remove();
+                $(json.result + " > tbody").find('tr').remove();
+                var companyfields = ['username', 'password', 'submit_by', 'company_code', 'company_name',  'company_type', 'address', 'country', 'phone', 'contact'];
+                
+                setTimeout(function() {
+                    let html = '<tr disabled>';
+                    companyfields.forEach(function(v_, i_) {
+                        html += '<td><strong>' + v_ + '</strong></td>';
+                    });
+                    html += '</tr>';
+                    $(json.result +" > thead").append(html);
+                    
+                    excel_data = Object.values(exceljson).map(function(v, i) {
+                        counter++;
+                        // let dddd = String(v['insurer']).substring(0, String(v['insurer']).indexOf(" "))
+                        let mid = "000000" + counter;
+                        v['password'] = "Soa1tJj94/" + counter;
+                        v["submit_by"] = "isaac@safamdigital.com";
+                        v["company_type"] = "Insurance";
+                        v['address'] = "LAGOS";
+                        v['country'] = "Nigeria";
+                        v['phone'] = "09876654565";
+                        v['contact'] = v['company_name'];
+                        v['rowNumber'] = i;
+                        v['registered_date'] =  moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
+                        let date = new Date(v['registered_date'])
+                        let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
+                        v['username'] = String(v['company_name']).substring(0, String(v['company_name']).indexOf(" "))+ counter + '@' + 'gmail.com';
+                        let company_code = 'CMP/' + mid.slice(-6) + "/" + monthYear;
+                        
+                        let insurer = v['company_name'];
+                        let insured = v['company_name'];
+                        if(insurersObj[insurer] === undefined ){
+                            insurersObj[insurer] = company_code;
+                            v['company_code'] = company_code;
+
+                        }  else{
+                            v['company_code'] = insurersObj[insurer];
+                        }
+                        
+                        html = '<tr id="'+i+'" class="row">';
+                        companyfields.forEach(function(v_, i_) {
+                            if (typeof v[v_] === undefined) {
+
+                                html += '<td></td>';
+                                return;
+                            }
+                            html += '<td>' + v[v_] + '</td>';
+                            $('#meta').html(i);
+
+                        });
+                        html += '</tr>';
+                        $(json.result + " > tbody").append(html);
+                        return v;
+                    })
+                    
+                    document.querySelector('#result > tbody').addEventListener('click', (event) => {
+                        let row = {};
+                        //
+                        let elem = event.target.closest('tr');
+                        let rowId = elem.id;
+                        row = excel_data[rowId];
+                        row['func'] = action;
+                        // console.log(row);return;
+                        if (rowId >= 0) {
+                            $.post(url, row, function(data) {
+                                let current = $('#result > tbody').find('tr:eq(' + rowId + ')');
+                                // console.log(data.td_cell)
+                                if (data.status) {
+                                    current.css({
+                                        'background-color': '#c4ffbd'
+                                    });
+                                } else if (data.status == false) {
+                                    current.css({
+                                        'background-color': 'rgb(247, 182, 179)'
+                                    });
+                                    current.find(data.td_cell).css({
+                                        'color': 'blue',fontSize: "18px"
+                                    });
+                                }
+                            }, 'JSON');
+                        }
+                    })
+
+                });
+            }
 
             
+            let subriskTable = (json)=>{
+                // console.log(json);return;
+                reset({});
+                document.querySelector('#saved').innerText = 0;
+                document.querySelector('#alreadyExist').innerText = 0
+                action = "savesubrisk";
+                $("#action_name").html("subrisk saving");
+                let counter = 0;
+                let fields = null;
+                if(exceljson.length > 0){
+                    fields = Object.keys(exceljson[0]);
+                }
+
+                //clean the table
+                $(json.result + " > thead").find('tr').remove();
+                $(json.result + " > tbody").find('tr').remove();
+                let subriskfields = ['subrisk_code', 'subrisk_name', 'risk_code', 'alpha', 'digit', 'submit_by', 'modified_by'];
+                
+                setTimeout(function() {
+                    let html = '<tr disabled>';
+                    subriskfields.forEach(function(v_, i_) {
+                        html += '<td><strong>' + v_ + '</strong></td>';
+                    });
+                    html += '</tr>';
+                    $(json.result +" > thead").append(html);
+                    
+                    excel_data = Object.values(exceljson).map(function(v, i) {
+                        counter++;
+                        v['registered_date'] =  moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
+                        let date = new Date(v['registered_date'])
+                        let month = date.getMonth()+1;
+                        let mid = "000" + counter + month;
+                        v["submit_by"] = "isaac@safamdigital.com";
+                        v["modified_by"] = "isaac@safamdigital.com";
+                        v['rowNumber'] = i;
+                        let subrisk_code = 'S' + mid.slice(-3);
+                        
+                        let subrisk_name = v['subrisk_name'];
+                        if(subriskObj[subrisk_name] === undefined ){
+                            subriskObj[subrisk_name] = {"subrisk_code": subrisk_code, "risk_code": v['risk_code']};
+                            v['subrisk_code'] = subrisk_code;
+                            v['digit'] = mid.slice(-3);
+
+                        }  else{
+                            v['subrisk_code'] = subriskObj[subrisk_name]['subrisk_code'];
+                            v['risk_code'] = subriskObj[subrisk_name]['risk_code'];
+                            v['alpha'] = subriskObj[subrisk_name]['alpha'];
+                            v['digit'] = subriskObj[subrisk_name]['digit'];
+                        }
+                        
+                        html = '<tr id="'+i+'" class="row">';
+                        subriskfields.forEach(function(v_, i_) {
+                            if (typeof v[v_] === undefined) {
+
+                                html += '<td></td>';
+                                return;
+                            }
+                            html += '<td>' + v[v_] + '</td>';
+                            $('#meta').html(i);
+
+                        });
+                        html += '</tr>';
+                        $(json.result + " > tbody").append(html);
+                        return v;
+                    })
+                    
+                    document.querySelector('#result > tbody').addEventListener('click', (event) => {
+                        let row = {};
+                        //
+                        let elem = event.target.closest('tr');
+                        let rowId = elem.id;
+                        row = excel_data[rowId];
+                        row['func'] = action;
+                        // console.log(row);return;
+                        if (rowId >= 0) {
+                            $.post(url, row, function(data) {
+                                let current = $('#result > tbody').find('tr:eq(' + rowId + ')');
+                                // console.log(data.td_cell)
+                                if (data.status) {
+                                    current.css({
+                                        'background-color': '#c4ffbd'
+                                    });
+                                } else if (data.status == false) {
+                                    current.css({
+                                        'background-color': 'rgb(247, 182, 179)'
+                                    });
+                                    current.find(data.td_cell).css({
+                                        'color': 'blue',fontSize: "18px"
+                                    });
+                                }
+                            }, 'JSON');
+                        }
+                    })
+
+                });
+            }
+
             //client table
             let  clientsTable = (json)=> {
                 reset({});
@@ -780,7 +1063,7 @@
                 //clean the table
                 $(json.result + " > thead").find('tr').remove();
                 $(json.result + " > tbody").find('tr').remove();
-                var clientFields = ['registered_date', 'username', 'start_date', 'end_date', 'agent_code', 'title', 'first_name', 'last_name', 'middle_name', 'client_name', 'gender', 'marital_status', 'business', 'address', 'state', 'country', 'religion', 'phone', 'client_code', 'occupation', 'birth_date', 'business', 'id_type', 'id_number', 'sector', 'submit_by', 'submit_on', 'modified_by', 'modified_on', 'username2'];
+                var clientFields = ['registered_date', 'client_code', 'username', 'start_date', 'end_date', 'agent_code', 'title', 'first_name', 'last_name', 'middle_name', 'client_name', 'gender', 'marital_status', 'business', 'address', 'state', 'country', 'religion', 'phone', 'occupation', 'birth_date', 'business', 'id_type', 'id_number', 'sector', 'submit_by', 'submit_on', 'modified_by', 'modified_on', 'username2'];
 
                 setTimeout(function() {
 
@@ -824,7 +1107,7 @@
                             // return
                         }
                         if(((v['business'] ?? '').trim()) !== 'Corporate'){
-                           let names = (v['insured'] ?? '').trim().split(' ');
+                           let names = (v['insured'] ?? '').trim().split(' ')
                             v['first_name'] = names[0] ?? '';
                             v['last_name'] = names[1] ?? '';
                             v['middle_name'] = names[2] ?? '';
@@ -845,7 +1128,7 @@
                             }
                             
                         }else{
-                            v['first_name'] = (v['insured'] ?? '').trim();
+                            v['first_name'] = (v['insured'] ?? '').trim()
                             v['middle_name'] = '';
                             v['last_name'] = (v['insured'] ?? '').trim();
                             v['title'] = "Mr.";
@@ -856,15 +1139,16 @@
                             v['client_name'] = v['insured'];
                         }
                         counter++;
-                        v['registered_date'] =  moment(v['trans_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
+                        // v['registered_date'] =  moment(v['trans_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
+                        v['registered_date'] =  moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
                         
                         let mid = "000000" + counter;
                         let date = new Date(v['registered_date'])
                         let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
                         v['rowNumber'] = i;
-                        v['username'] = 'fsl' + i + '@' + 'gmail.com';
+                        v['username'] = 'afriglobalclient' + i + '@' + 'gmail.com';
                         v['agent_code'] = 'A/20/000003';
-                        let client_code =  'CL/FSL/' + mid.slice(-6) + '/' + monthYear;
+                        let client_code =  'CL/AFG/' + mid.slice(-6) + '/' + monthYear;
                         let insured = v['insured'];
                         if(clients[insured] === undefined ){
                             clients[insured] = client_code;
@@ -881,12 +1165,12 @@
                         v['state'] = 'LAGOS';
                         v['country'] = 'NIGERIA';
                         v['sector'] = 'private';
-                        v['username2'] = "Uchenna.okorie@fsl.ng";//lib
+                        v['username2'] = "igbokwe@afriglobal.com.ng";
                         v['birth_date'] = moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
 
-                        v['submit_by'] = 'Uchenna.okorie@fsl.ng';//lib
+                        v['submit_by'] = 'igbokwe@afriglobal.com.ng';//lib
                         v['submit_on'] =  v['registered_date'];
-                        v['modified_by'] = 'Uchenna.okorie@fsl.ng';//lib
+                        v['modified_by'] = 'igbokwe@afriglobal.com.ng';//lib
                         v['modified_on'] = v['registered_date'];
                         //
                         // exceljson[i] = v;
@@ -949,7 +1233,7 @@
                 $("#action_name").html("Policy");
                 $(json.result + "> thead").find('tr').remove();
                 $(json.result + "> tbody").find('tr').remove();
-                let policyFields = ['client_code','client_name', 'first_name', 'last_name', 'middle_name', 'policy_code', 'agent_code', 'trans_date', 'subrisk_name', 'subrisk_code', 'risk_code', 'branch_code', 'submit_by', 'submit_on', 'modified_by', 'modified_on' ];
+                let policyFields = ['trans_date', 'policy_code', 'client_code','client_name', 'first_name', 'last_name', 'middle_name', 'agent_code', 'trans_date', 'subrisk_name', 'subrisk_code', 'risk_code', 'branch_code', 'submit_by', 'submit_on', 'modified_by', 'modified_on' ];
 
                 setTimeout(function() {
 
@@ -965,11 +1249,11 @@
                         // v['rowNumber'] = i;
                         v['branch_code'] = 'LAG/01/001';
                         v['agent_code'] = 'A/20/000003';
-                        v['trans_date'] =  moment(v['trans_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
-                        v['submit_by'] = 'Uchenna.okorie@fsl.ng';
-                        v['submit_on'] = v['trans_date'];
-                        v['modified_by'] = 'Uchenna.okorie@fsl.ng';
-                        v['modified_on'] = v['trans_date'];
+                        v['trans_date'] =  moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
+                        // v['submit_by'] = 'Uchenna.okorie@fsl.ng';
+                        // v['submit_on'] = v['trans_date'];
+                        v['approved_by'] = 'migration@afriglobal.com.ng';
+                        // v['modified_on'] = v['trans_date'];
                         if(v['policy_code'] == "TBA") v['policy_code'] = v['policy_broker_code'];
                         let subrisk_name = v['subrisk_name'].trim();
                         v['subrisk_code'] = (subriskObj[subrisk_name] ?? '')['subrisk_code'];
@@ -1030,7 +1314,7 @@
                 $(json.result + " > tbody").find('tr').remove();
                 let counter = 0;
                 // INSERT
-                let debitFields = ['client_name', 'debit_code', 'ref_code', 'policy_code','sum_insured', 'premium_rate', 'gross_premium', 'commission', 'client_code', 'agent_code', 'agent_prop', 'trans_date', 'trans_mode', 'risk_code', 'subrisk_name', 'subrisk_code', 'branch_code', 'start_date', 'end_date', 'bus_type', 'com_rate', 'vat_rate', 'net_amount', 'currency_code', 'currency_rate', 'submit_by', 'submit_on', 'modified_by', 'modified_on', 'approved_by' ];
+                let debitFields = ['client_name', 'debit_code', 'policy_code','sum_insured', 'gross_premium', 'premium_rate','com_rate', 'vat_rate', 'net_amount', 'ref_code', 'commission', 'client_code', 'agent_code', 'agent_prop', 'trans_date', 'trans_mode', 'risk_code', 'subrisk_name', 'subrisk_code', 'branch_code', 'start_date', 'end_date', 'bus_type', 'currency_code', 'currency_rate', 'submit_by', 'submit_on', 'modified_by', 'modified_on', 'approved_by' ];
 
                 setTimeout(function() {
 
@@ -1042,21 +1326,37 @@
                     $(json.result + " > thead").append(html);
                     //first = false;
                     excel_data = excel_data.map(function(v, i) { 
-                        let sumInsured = parseFloat(v['sum_insured']);
+                        // let sumInsured = parseFloat(v['sum_insured']);
+                        
+                        let subrisk_name = v['subrisk_name'].toLowerCase();
+                        v['risk_code'] = subriskObj[subrisk_name]['risk_code'];
+                        v['subrisk_code'] = subriskObj[subrisk_name]['subrisk_code'];
+                        v['premium_rate'] = subriskObj[subrisk_name]['premium_rate'];
+                        v['com_rate'] = subriskObj[subrisk_name]['com_rate'];
+                        v['vat_rate'] = subriskObj[subrisk_name]['vat_rate'];
+
+                        v['sum_insured'] = (v['gross_premium'] * 100) / v['premium_rate'];
+                        if(v['risk_code'] === 'V'){
+                            v['com_rate'] = 12.5;
+                        }else{
+                            v['com_rate'] = 20;
+                        }
                         v['agent_prop'] = '100';
+                        v['trans_date'] =  moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
                         v['start_date'] = moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
                         v['end_date'] =  moment(v['end_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
-                        v['approved_by'] = 'sunday.igbavboa@fsl.ng';
+                        v['approved_by'] = 'migration@afriglobal.com.ng';
+                        // v['username2'] = 'migration@afriglobal.com.ng';
                         v['currency_code'] = 'NGN';
                         v['currency_rate'] = '1';
                         counter++;
 
-                        let date = new Date(v['start_date'])
-                        let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
+                        // let date = new Date(v['start_date'])
+                        // let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
                         
-                        let mid = "000000" + counter;
-                        let debit_code =  'DN/FSL/' + mid.slice(-6) + '/' + monthYear;
-                        v['debit_code'] = debit_code;
+                        // let mid = "000000" + counter;
+                        // let debit_code =  'DN/AFG/' + mid.slice(-6) + '/' + monthYear;
+                        // v['debit_code'] = debit_code;
                         v['trans_mode'] = 'Transfer';
                         html = '<tr id="'+i+'" class="row">';
                         //
@@ -1115,7 +1415,7 @@
                 $(json.result + " > tbody").find('tr').remove();
                 let counter = 0;
                 // INSERT
-                 let creditFields = ['credit_code', 'client_code', 'policy_code', 'debit_code', 'ref_code', 'sum_insured', 'gross_premium','commission', 'net_amount', 'start_date', 'end_date', 'risk_code', 'subrisk_name', 'company_code','insurer', 'bank_account', 'trans_date', 'trans_mode', 'bus_type', 'status', 'description', 'bus_prop', 'submit_by', 'modified_by', 'approved_by'];
+                 let creditFields = ['credit_code', 'client_code', 'policy_code', 'debit_code', 'ref_code', 'sum_insured', 'gross_premium','commission', 'net_amount', 'start_date', 'end_date', 'risk_code', 'subrisk_name', 'company_code','company_name', 'bank_account', 'trans_date', 'trans_mode', 'bus_type', 'status', 'description', 'bus_prop', 'submit_by', 'modified_by', 'approved_by'];
 
                 setTimeout(function() {
 
@@ -1133,15 +1433,15 @@
                         let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
 
                         let mid = "000000" + counter;
-                        let credit_code =  'CN/FSL/' + mid.slice(-6) + '/' + monthYear;
+                        let credit_code =  'CN/AFG/' + mid.slice(-6) + '/' + monthYear;
                         v['ref_code'] = v['debit_code'];
                         v['credit_code'] = credit_code;
                         v['bus_type'] = 'INS';
                         v['status'] = '1';
                         v['rowNumber'] = i;
-                        v['bank_account'] = '1103118';
-                        let insurer = v['insurer'];
-                        let company_code = insurersObj[v['insurer']];
+                        v['bank_account'] = '1000008';
+                        // let insurer = v['company_name'];
+                        let company_code = insurersObj[v['company_name']];
                         v['company_code'] = company_code;
                         v['bus_prop'] = 100;
                         html = '<tr id="'+i+'" class="row">';
@@ -1210,7 +1510,7 @@
                     $(json.result + " > thead").append(html);
 
                     excel_data = excel_data.map(function(v, i) { 
-                        let sumInsured = parseFloat(v['sum_insured']);
+                        // let sumInsured = parseFloat(v['sum_insured']);
                         // v['rowNumber'] = i;
                         // if(v['gross_premium'] === undefined || v['sum_insured'] === undefined || sumInsured === 0  || v['risk_code'] === undefined) return;
                         counter++;
@@ -1219,7 +1519,7 @@
                         let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
                         
                         let mid = "000000" + counter;
-                        let receipt_code =  'RCP/FSL/' + mid.slice(-6) + '/' + monthYear;
+                        let receipt_code =  'RCP/AFG/' + mid.slice(-6) + '/' + monthYear;
                         v['receipt_code'] = (v['receipt_code']) ?? receipt_code;
                         v['ref_code'] = v['debit_code'];
                         v['amt_received'] = (v['amount_received']) ?? 0;
@@ -1302,7 +1602,8 @@
                         v['payment_code'] = payment_code;
                         v['ref_code'] = v['credit_code'];
                         v['gross_premium'] = v['amount_remitted'] ?? v['gross_premium'];
-                        v['trans_date'] = (moment(v['date_remitted'], 'DD/MM/YYYY').format('YYYY-MM-DD')) ?? v['trans_date'];
+                        v['trans_date'] = (moment(v['receipt_date'], 'DD/MM/YYYY').format('YYYY-MM-DD')) ?? v['trans_date'];
+                        // v['trans_date'] = (moment(v['date_remitted'], 'DD/MM/YYYY').format('YYYY-MM-DD')) ?? v['trans_date'];
                         v['bus_type'] = "PYM";
                         html = '<tr id="'+i+'" class="row">';
                         paymentFields.forEach(function(v_, i_) {
@@ -1379,10 +1680,10 @@
                             }
 
                             if (xlsxflag) {
-                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["2024"]);
+                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["october_2023"]);
                                 console.log(exceljson);
                             } else {
-                                exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets["2024"]);
+                                exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets["october_2023"]);
                                 console.log(exceljson);
                             }
                         }

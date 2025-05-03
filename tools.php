@@ -3,14 +3,43 @@
 ?>
 <!doctype html>
 <html>
-    <thead>
+    <head>
         <title>tool</title>
         <meta charset="utf-8">
-    </thead>
+        <style>
+            .red{
+                display: inline-block;
+                width:300px;
+                height:300px;
+                background-color:red;
+            }
+            
+            .green{
+                margin-left:-50px;
+                display: inline-block;
+                width:300px;
+                height:300px;
+                background-color:green;
+            }
 
-    <tbody>
-        <div id="show"></div>
-    </tbody>
+        </style>
+    </head>
+    <body>
+        <h3 class="hel">hello</h3>
+        <div>
+            <div class="red"></div>
+            <div class="green"></div>
+        </div>
+        <table>
+            <thead>
+            </thead>
+            <tbody>
+                <div id="show"></div>
+                
+            </tbody>
+        </table>
+
+    </body>
 
     <script>
         var lg = [
@@ -15712,6 +15741,6 @@
             // console.log(vehicle_make_);
             document.getElementById("show").innerHTML = JSON.stringify(vehicle_make_)
         }
-        createobj();
+        // createobj();
     </script>
 </html>
