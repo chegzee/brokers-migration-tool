@@ -1,0 +1,310 @@
+[
+  {
+    "id": "sn",
+    "size": "4",
+    "label": "SN",
+    "width": "40px",
+    "display": "false"
+  },
+  {
+    "id": "certificate_no",
+    "size": "20",
+    "label": "Cert.No",
+    "width": "100px",
+    "display": "false"
+  },
+  {
+    "id": "property",
+    "size": "200",
+    "label": "Description"
+  },
+  {
+    "id": "address",
+    "size": "200",
+    "label": "Address"
+  },
+  {
+    "id": "start_date",
+    "tag": "date",
+    "size": "10",
+    "label": "Start Date",
+    "width": "75px",
+    "display": "false"
+  },
+  {
+    "id": "end_date",
+    "tag": "date",
+    "size": "10",
+    "label": "End Date",
+    "width": "75px",
+    "display": "false"
+  },
+  {
+    "id": "sum_insured",
+    "size": "20",
+    "class": "money",
+    "label": "Sum Insured",
+    "width": "120px"
+  },
+  {
+    "id": "basic_fire",
+    "tag": "select",
+    "label": "Basic Fire",
+    "value": [
+      "0.35",
+      "0.35",
+      "0.125"
+    ],
+    "width": "50px",
+    "option": [
+      "STOCK",
+      "OTHERS",
+      "BUILDING"
+    ]
+  },
+  {
+    "id": "premium_rate",
+    "size": "10",
+    "class": "decimal",
+    "label": "Basic rate",
+    "width": "40px",
+    "display": "false"
+  },
+  {
+    "id": "sum_insured_rate",
+    "size": "5",
+    "class": "decimal",
+    "label": "S.D.D",
+    "width": "20px",
+    "default": "100",
+    "display": "true"
+  },
+  {
+    "id": "first_year_rate",
+    "size": "10",
+    "class": "decimal",
+    "label": "First Reduce Rate",
+    "width": "40px",
+    "default": "25",
+    "display": "false"
+  },
+  {
+    "id": "fea_rate",
+    "size": "10",
+    "class": "decimal",
+    "label": "F.E. Disc.",
+    "width": "40px",
+    "default": "2.5",
+    "display": "false"
+  },
+  {
+    "id": "indemnity_period_loading",
+    "size": "10",
+    "class": "decimal",
+    "label": "Indemnity PL",
+    "width": "40px",
+    "default": "100",
+    "display": "false"
+  },
+  {
+    "id": "basic_premium",
+    "size": "20",
+    "class": "money",
+    "label": "Basic Premium",
+    "width": "100px",
+    "formula": "{{sum_insured}}*{{premium_rate}}/100*{{sum_insured_rate}}/100*(1-{{first_year_rate}}/100)*(1-{{fea_rate}}/100*{{indemnity_period_loading}}/100)"
+  },
+  {
+    "id": "bush_fire_rate",
+    "size": "10",
+    "class": "decimal",
+    "label": "Bush Fire",
+    "width": "40px",
+    "default": "0.0018",
+    "display": "false"
+  },
+  {
+    "id": "fire_earthquake_rate",
+    "size": "10",
+    "class": "decimal",
+    "label": "Fire after earthquake",
+    "width": "40px",
+    "default": "0.00725",
+    "display": "false"
+  },
+  {
+    "id": "shock_earthquake_rate",
+    "size": "10",
+    "class": "decimal",
+    "label": "Shock after earthquake",
+    "width": "40px",
+    "default": "0.013",
+    "display": "false"
+  },
+  {
+    "id": "explosion",
+    "size": "10",
+    "class": "decimal",
+    "label": "Explosion",
+    "width": "40px",
+    "default": "0.018",
+    "display": "false"
+  },
+  {
+    "id": "aircraft_dropped",
+    "size": "10",
+    "class": "decimal",
+    "label": "Aircraft dropped",
+    "width": "40px",
+    "default": "0.003625",
+    "display": "false"
+  },
+  {
+    "id": "veh_impact",
+    "size": "10",
+    "class": "decimal",
+    "label": "Impact by vehicle",
+    "width": "40px",
+    "default": "0.003625",
+    "display": "false"
+  },
+  {
+    "id": "storm",
+    "size": "10",
+    "class": "decimal",
+    "label": "Storm, tempest",
+    "width": "40px",
+    "default": "0.0275",
+    "display": "false"
+  },
+  {
+    "id": "burst",
+    "size": "10",
+    "class": "decimal",
+    "label": "Bursting",
+    "width": "40px",
+    "default": "0.0275",
+    "display": "false"
+  },
+  {
+    "id": "srcc",
+    "size": "10",
+    "class": "decimal",
+    "label": "SRCC",
+    "width": "40px",
+    "default": "0.065",
+    "display": "false"
+  },
+  {
+    "id": "damage",
+    "size": "10",
+    "class": "decimal",
+    "label": "Malicious damage",
+    "width": "40px",
+    "default": "0.0125",
+    "display": "false"
+  },
+  {
+    "id": "peril_premium",
+    "size": "20",
+    "class": "money",
+    "label": "S.Peril Premium",
+    "width": "100px",
+    "formula": "{{sum_insured}}*({{bush_fire_rate}}/100+{{fire_earthquake_rate}}/100+{{shock_earthquake_rate}}/100+{{explosion}}/100+{{aircraft_dropped}}/100+{{veh_impact}}/100+{{storm}}/100+{{burst}}/100+{{srcc}}/100+{{damage}}/100)+{{sum_insured_rate}}/100"
+  },
+  {
+    "id": "package_disc",
+    "size": "10",
+    "class": "decimal",
+    "label": "Package disc",
+    "width": "40px",
+    "default": "5",
+    "display": "false"
+  },
+  {
+    "id": "area_disc",
+    "size": "10",
+    "class": "decimal",
+    "label": "Area disc",
+    "width": "40px",
+    "default": "2.5",
+    "display": "false"
+  },
+  {
+    "id": "claim_disc",
+    "size": "10",
+    "class": "decimal",
+    "label": "Low claim disc",
+    "width": "40px",
+    "default": "10",
+    "display": "false"
+  },
+  {
+    "id": "lta_disc",
+    "size": "10",
+    "class": "decimal",
+    "label": "LTA disc",
+    "width": "40px",
+    "default": "7.5",
+    "display": "false"
+  },
+  {
+    "id": "fsp_premium",
+    "size": "20",
+    "class": "money",
+    "label": "Fire and S.P. Premium",
+    "width": "100px",
+    "formula": "({{basic_premium}}+{{peril_premium}})*(1-{{package_disc}}/100)*(1-{{area_disc}}/100)*(1-{{claim_disc}}/100)*(1-{{lta_disc}}/100)"
+  },
+  {
+    "id": "burglary_rate",
+    "size": "10",
+    "class": "decimal",
+    "label": "Burglary rate",
+    "width": "40px",
+    "display": "false"
+  },
+  {
+    "id": "burg_loss_disc",
+    "size": "10",
+    "class": "decimal",
+    "label": "Burg. First Loss Discount",
+    "width": "40px",
+    "default": "20",
+    "display": "false"
+  },
+  {
+    "id": "burg_package_disc",
+    "size": "10",
+    "class": "decimal",
+    "label": "Burg. Package disc",
+    "width": "40px",
+    "default": "10",
+    "display": "false"
+  },
+  {
+    "id": "burg_lta_disc",
+    "size": "10",
+    "class": "decimal",
+    "label": "Burg. LTA disc",
+    "width": "40px",
+    "default": "7.5",
+    "display": "false"
+  },
+  {
+    "id": "burglary_premium",
+    "size": "20",
+    "class": "money",
+    "label": "Burglary Premium",
+    "width": "100px",
+    "formula": "{{sum_insured}}*{{burglary_rate}}/100*(1-{{burg_loss_disc}}/100)*(1-{{burg_package_disc}}/100)*(1-{{burg_lta_disc}}/100)"
+  },
+  {
+    "id": "gross_premium",
+    "size": "20",
+    "class": "money",
+    "label": "Premium",
+    "width": "100px",
+    "formula": "{{fsp_premium}}+{{burglary_pemium}}"
+  }
+]

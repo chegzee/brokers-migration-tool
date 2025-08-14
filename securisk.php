@@ -5,7 +5,7 @@
 
     
     $post = filter_input_array(INPUT_POST);
-    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_afriglobal');
+    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_lib');
     $sqlQuery = new SqlQuery();
     $sql = "SELECT t1.auto_id, t1.subrisk_code, t1.subrisk_name, t1.alpha, t1.digit, t1.def_premium_rate, t2.premium_rate, t2.com_rate, t2.vat_rate, t1.def_com_rate, t1.risk_code, t1.status, t2.risk_name, LEFT(t1.modified_on, 16) modified_on FROM cod_subrisk t1 LEFT JOIN (SELECT t21.risk_code, t21.risk_name, t21.premium_rate, t21.com_rate, t21.vat_rate FROM cod_risk t21) t2 ON t1.risk_code = t2.risk_code WHERE 1=1 ";
     //
@@ -19,22 +19,30 @@
         }
     }
     // var_dump($subriskObj);exit;
-    $sql = "SELECT t1.* FROM tec_company t1 ";
-        
-    $sql .= "ORDER BY t1.company_name";
-    //return [$sql];
-    
+    $sql = "SELECT t1.* FROM tec_company t1 ORDER BY t1.company_name";
     $db->query($sql);
     $rows = $db->resultSet();
-    // echo(json_encode($rows));exit;
 
     $insurersObj = (object)array();
     if ($rows !== false) {
         foreach ($rows as $v) {
-            $insurersObj->{$v->company_name} = $v->company_code;
+            $insurersObj->{strtolower($v->company_name)} = $v->company_code;
         }
     }
+
     
+    $sql = "SELECT t1.first_name, t1.client_name, t1.client_code FROM tec_client t1 ORDER BY t1.client_name";
+    $db->query($sql);
+    $rows = $db->resultSet();
+
+    $clients = (object)array();
+    if ($rows !== false) {
+        foreach ($rows as $v) {
+            $clients->{strtolower($v->client_name)} = $v->client_code;
+        }
+    }
+    // var_dump($clients);exit;
+
     if (($post['func'] ?? '') == 'saveClient' || ($post['func'] ?? '') == 'autoclient') {
         if($post['client_name'] == "empty"){
             echo json_encode(array('status' => false, 'message ' => $v, "td_cell" => "#client_name"));
@@ -46,6 +54,7 @@
             $db->query($sql);
             // $res = $db->execute();
             $res = $db->rowCount();
+            // var_dump($res);exit;
             
             if ($res > 0) {
                 echo json_encode(array('status' => true, 'message ' => $res, 'msg' => $post));
@@ -74,8 +83,9 @@
         //
         try {
                 $db->query($sql);
-                // $res = $db->execute();
+                $res = $db->execute();
                 $res = $db->rowCount();
+                // var_dump($res);exit;
                 if ($res > 0) {
                     echo json_encode(array('status' => true, 'message ' => $res, 'msg' => $post));
                     exit;
@@ -92,16 +102,9 @@
     }
 
     else if (($post['func'] ?? '') == 'savedebit' || ($post['func'] ?? '') == 'autodebit') {
-        // echo json_encode($post["commission"]);exit;
-        // $post['sum_insured'] = ($post['gross_premium'] * 100) / $post['premium_rate'];
-        // if($post['risk_code'] === 'V'){
-        //     $post['com_rate'] = 12.5;
-        // }else{
-        //     $post['com_rate'] = 20;
-        // }
-        $prem = $post["gross_premium"] == 0;
-        $comm = $post["commission"] == 0;
-        $sum_in = $post["sum_insured"] == 0;
+        $prem = ($post["gross_premium"] ?? 0) == 0;
+        $comm = ($post["commission"] ?? 0) == 0;
+        $sum_in = ($post["sum_insured"] ?? 0) == 0;
         if($sum_in){
             echo json_encode(array('status' => false, 'message ' => $v, "td_cell" => "#sum_insured"));
             exit;
@@ -143,20 +146,6 @@
             echo json_encode(array('status' => false, "msg"=>"No policy code"));
             exit;
         }
-
-        // $post_start_date = strtotime($post['start_date']);
-        // $post_end_date = strtotime($post['end_date']);
-        // $default_period = ($post_end_date - strtotime($post['end_date'] . '-1 year +1 day')) / (60*60*24);
-        // // $default_period = $post_end_date - strtotime(date('Y-m-d', strtotime($post['end_date'] . '-1 year +1 day'))) / (60*60*24);
-        // $period = round(($post_end_date - $post_start_date) / (60*60*24));
-        // $period_ratio = $period / $default_period;
-        
-        // if($period_ratio == 0){
-        //     echo json_encode(array('status' => false, 'message ' => $v, "td_cell" => "#start_date"));
-        //     exit;
-        // }
-        // $start_date = strtotime($policy->DN->start_date);
-        // $end_date = strtotime($policy->DN->end_date);
         
         if(empty($policy->DN)){
             $post['bus_type'] = 'NEW';
@@ -165,38 +154,10 @@
         }else{
 
             $post['bus_type'] = 'REN';
-            // $post['ref_code'] = $post['debit_code'];
             $post['ref_code'] = $policy->DN->ref_code;
             $post['description'] = "BEING RENEWAL PREMIUM ON POLICY " . $policy->policy_code;
-
-            // $start_date = strtotime($policy->DN->start_date);
-            // $end_date = strtotime($policy->DN->end_date);
-            
-            // if($post_start_date > $end_date && ($post_end_date > $end_date && $post_end_date > $start_date )){
-            //     $post['bus_type'] = 'REN';
-            //     // $post['ref_code'] = $post['debit_code'];
-            //     $post['ref_code'] = $policy->DN->ref_code;
-            //     $post['description'] = "BEING RENEWAL PREMIUM ON POLICY " . $policy->policy_code;
-
-            // }else if(($post_start_date > $start_date && $post_start_date <= $end_date) && ($post_end_date === $end_date) ){
-            //     $post['bus_type'] = 'ADD';
-            //     $post['ref_code'] = $policy->DN->ref_code;
-            //     $post['description'] = "BEING PREMIUM PAID ON POLICY " . $policy->policy_code;
-            // }else{
-            //     echo json_encode(array('status' => false, "msg"=>"Wrong period", "db"=>$policy->DN));
-            //     exit;
-
-            // }
         }
         
-        // $post['vat_rate'] = 7.5;
-        
-        // $post['premium_rate'] = $post['gross_premium'] / $post['sum_insured'] * 100 / $period_ratio;
-        // var_dump($post['commission']);exit;
-        // $post['com_rate'] = ($post['commission'] * 100) / (1.075 * $post['gross_premium']);
-        // var_dump($post['com_rate']);exit;
-        // $post['commission_'] =  ($post['com_rate']/100) * $post['gross_premium'];
-        // $post['vat'] = 0.075 * $post['commission_'];
         $post['other_charge'] = 0;
         
         $sql = "SELECT t1.auto_id, t1.item, t1.branch_code, t1.risk_code, t1.debit_account, t1.credit_account FROM sys_tec_act t1 WHERE t1.branch_code = 'LAG/01/001' ";
@@ -230,21 +191,18 @@
 
         try {
             $db->query($sql);
-            $res = $db->rowCount();
-            // $res = $db->execute();
-            // var_dump($res);exit;
-            //    echo json_encode($res);exit;
+            // $res = $db->rowCount();
+            $res = $db->execute();
+            var_dump($res);exit;
             if ($res > 0) {
 
                 //being comment bcos no need for ledger posting
                 // delete existing
                 // $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$post['debit_code']}%' AND ref_code = '{$post['ref_code']}'");
                 // $db->execute();
-                // // var_dump($post['debit_code']);exit;
                 // $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'beneficiary', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
 
                 // $gl = clone (object)$post;
-                // // var_dump($gl);exit;
                 
                 // // debit | DR
                 // $gl->account_code = $ledger_mapping->debit->debit_account;
@@ -267,10 +225,10 @@
                 // $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
                 
                 
-                // // debit-com | DR
+                // // // debit-com | DR
                 // $gl->account_code = $ledger_mapping->{'debit-com'}->debit_account;
                 // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                // $gl->debit = $gl->commission_;
+                // $gl->debit = $gl->commission;
                 // $gl->credit = '0';
                 // $gl->trans_type = 'PYM';
                 // $gl->trans_code = $gl->debit_code . '-COM';
@@ -281,12 +239,12 @@
                 // $gl->account_code = $ledger_mapping->{'debit-com'}->credit_account;
                 // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
                 // $gl->debit = '0';
-                // $gl->credit = $gl->commission_;
+                // $gl->credit = $gl->commission;
 
                 // $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
 
                 
-                // // debit-vat | DR
+                // // // debit-vat | DR
                 // $gl->account_code = $ledger_mapping->{'debit-vat'}->debit_account;
                 // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
                 // $gl->debit = $gl->vat;
@@ -305,26 +263,8 @@
                 // $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
                 
                 // $db->query($sql);
-                // $db->execute();
+                // $res = $db->execute();
 
-                // debit-chg | DR
-                // $gl->account_code = $ledger_mapping->{'debit-chg'}->debit_account;
-                // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                // $gl->debit = $gl->other_charge;
-                // $gl->credit = '0';
-                // $gl->trans_type = 'CHG';
-                // $gl->trans_code = $gl->debit_code . '-CHG';
-
-                // $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
-
-                // // debit-chg | CR
-                // $gl->account_code = $ledger_mapping->{'debit-chg'}->credit_account;
-                // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                // $gl->debit = '0';
-                // $gl->credit = $gl->other_charge;
-
-                //$sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
-                // var_dump($sql);exit;
                 echo json_encode(array('status' => true, 'message ' => $res, 'msg' => $post));
                 exit;
             } else {
@@ -356,57 +296,57 @@
         // var_dump($post['company_code']);exit;
         $sql = "SELECT t1.auto_id, t1.account_code, t1.account_name, t1.group_code, coalesce(t1.bank, '') as bank, t2.group_name, t2.range_min, t2.range_max, t2.base_code, t2.base_name, t2.dr_cr FROM act_account t1 LEFT JOIN (SELECT t21.group_code, t21.group_name, t21.range_min, t21.range_max, t22.base_code, t22.base_name, t22.dr_cr FROM act_group t21 LEFT JOIN act_base t22 ON t21.base_code = t22.base_code) t2 ON t1.group_code = t2.group_code WHERE 1=1 ";
         
-        // $db->query($sql);
-        // $row = $db->resultSet();
+        $db->query($sql);
+        $row = $db->resultSet();
     
-        // $accountChart = (object)array();
-        // if (!empty($row)) {
-        //     foreach ($row as $v) {
-        //         $accountChart->{$v->account_code} = $v;
-        //     }
-        // }
+        $accountChart = (object)array();
+        if (!empty($row)) {
+            foreach ($row as $v) {
+                $accountChart->{$v->account_code} = $v;
+            }
+        }
         // $post['debit_account'] = "1103118";
         // $post['credit_account'] = "2006102";
         // $post['description'] = 'desc';
         // echo json_encode($post['risk_code']);exit;
         try {
-            $sql = "INSERT INTO tec_policy_credit (`credit_code`,`ref_code`,`company_code`, `bank_account`, `debit_account`, `credit_account`,`trans_date`, `trans_mode`, `bus_type`, `status`, `description`, `bus_prop`, `submit_by`, `modified_by`, `approved_by`) VALUES ('" . $post['credit_code'] . "', '" . $post['ref_code'] . "', '" . $post['company_code'] . "', '" . $post['bank_account'] . "', '" . $post['debit_account'] . "', '" . $post['credit_account'] . "', '" . $post['trans_date'] . "', '" . $post['trans_mode'] . "', '" . $post['bus_type'] . "', '" . $post['status'] . "', '" . $post['description'] . "', '" . $post['bus_prop'] . "', '" . $post['submit_by'] . "', '" . $post['modified_by'] . "', '" . $post['approved_by'] . "')";
+            $sql = "INSERT INTO tec_policy_credit (`credit_code`,`ref_code`,`company_code`, `debit_account`, `credit_account`,`trans_date`, `trans_mode`, `bus_type`, `status`, `description`, `bus_prop`, `submit_by`, `modified_by`, `approved_by`) VALUES ('" . $post['credit_code'] . "', '" . $post['ref_code'] . "', '" . $post['company_code'] . "', '" . $post['debit_account'] . "', '" . $post['credit_account'] . "', '" . $post['trans_date'] . "', '" . $post['trans_mode'] . "', '" . $post['bus_type'] . "', '" . $post['status'] . "', '" . $post['description'] . "', '" . $post['bus_prop'] . "', '" . $post['submit_by'] . "', '" . $post['modified_by'] . "', '" . $post['approved_by'] . "')";
             $db->query($sql);
             $res = $db->rowCount();
             // $res = $db->execute();
             // echo json_encode($res);exit;
             if ($res > 0) {
                 //ledger posting is neccessary
-                // $gl = clone (object)$post;
+                $gl = clone (object)$post;
                 
-                // $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
+                $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
                 
-                // // delete existing
-                // $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$gl->credit_code}%' AND ref_code = '{$gl->ref_code}'");
-                // $db->execute();
+                // delete existing
+                $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$gl->credit_code}%' AND ref_code = '{$gl->ref_code}'");
+                $db->execute();
 
                 
-                // // credit | DR
-                // $gl->account_code = $ledger_mapping->credit->debit_account;
-                // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                // $gl->debit = $gl->net_amount;
-                // $gl->credit = '0';
-                // $gl->trans_code = $gl->credit_code;
-                // $gl->trans_type = 'CN';
-                // $gl->ref_detail = $gl->bus_type;
-                // $gl->trans_detail = $gl->description;
+                // credit | DR
+                $gl->account_code = $ledger_mapping->credit->debit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = $gl->net_amount;
+                $gl->credit = '0';
+                $gl->trans_code = $gl->credit_code;
+                $gl->trans_type = 'CN';
+                $gl->ref_detail = $gl->bus_type;
+                $gl->trans_detail = $gl->description;
                 
-                // $sql =  $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
+                $sql =  $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
         
-                // // credit | CR
-                // $gl->account_code = $ledger_mapping->credit->credit_account;
-                // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                // $gl->debit = '0';
-                // $gl->credit = $gl->net_amount;
+                // credit | CR
+                $gl->account_code = $ledger_mapping->credit->credit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = '0';
+                $gl->credit = $gl->net_amount;
                 
-                // $sql .=  $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
+                $sql .=  $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
 
-                // if ($gl->commission_ > 0) {
+                // if ($gl->commission > 0) {
                 
                 //     // debit-com | DR
                 //     $gl->account_code = $ledger_mapping->{'debit'}->credit_account;
@@ -422,7 +362,7 @@
                 //     $gl->account_code = $ledger_mapping->{'debit-com'}->debit_account;
                 //     $gl->account_name = $accountChart->{$gl->account_code}->account_name;
                 //     $gl->debit = '0';
-                //     $gl->credit = $gl->commission_;
+                //     $gl->credit = $gl->commission;
                 
                 //     $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
                 
@@ -474,8 +414,8 @@
 
                 // //echo json_encode(array('status' => false, 'message' => $sql)); exit;
                 // // var_dump($sql);exit;
-                // $db->query($sql);
-                // $db->execute();
+               $db->query($sql);
+               $res = $db->execute();
 
                 echo json_encode(array('status' => true, 'message ' => $res, 'msg' => $post));
                 exit;
@@ -502,7 +442,6 @@
                 $ledger_mapping->{$v->item} = $v;
             }
         }
-
 
         $sql = "SELECT t1.auto_id, t1.account_code, t1.account_name, t1.group_code, coalesce(t1.bank, '') as bank, t2.group_name, t2.range_min, t2.range_max, t2.base_code, t2.base_name, t2.dr_cr FROM act_account t1 LEFT JOIN (SELECT t21.group_code, t21.group_name, t21.range_min, t21.range_max, t22.base_code, t22.base_name, t22.dr_cr FROM act_group t21 LEFT JOIN act_base t22 ON t21.base_code = t22.base_code) t2 ON t1.group_code = t2.group_code WHERE 1=1 ";
         
@@ -538,44 +477,44 @@
         try {
             $sql = "INSERT INTO tec_policy_receipt (`receipt_code`,`ref_code`,`debit_account`, `credit_account`, `gross_premium`, `amt_received`, `trans_date`,`trans_mode`, `trans_info`, `bus_type`, `submit_by`, `modified_by`, `approved_by`) VALUES ('" . $post['receipt_code'] . "', '" . $post['ref_code'] . "', '" . $post['debit_account'] . "', '" . $post['credit_account'] . "', '" . $post['gross_premium'] . "', '" . $post['amt_received'] . "', '" . $post['trans_date'] . "', '" . $post['trans_mode'] . "', '" . $post['trans_info'] . "', '" . $post['bus_type'] . "', '" . $post['submit_by'] . "', '" . $post['modified_by'] . "', '" . $post['approved_by'] . "')";
             // 
-            // var_dump($sql);exit;
             $db->query($sql);
             $res = $db->rowCount();
             // $res = $db->execute();
+            // var_dump($res);exit;
             // echo json_encode($res);exit;
             
             
             if ($res > 0) {
                 //ledger postin is not necessary
                 // var_dump($res);exit;
-                // $gl = clone (object)$post;
+                $gl = clone (object)$post;
                         
-                // $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'beneficiary', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
+                $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'beneficiary', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
             
-                // // delete existing
-                // $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$gl->receipt_code}%' AND ref_code = '{$gl->ref_code}'");
-                // $db->execute();
+                // delete existing
+                $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$gl->receipt_code}%' AND ref_code = '{$gl->ref_code}'");
+                $db->execute();
             
                 // // debit-rcp | DR
-                // $gl->account_code = $gl->debit_account;
-                // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                // $gl->debit = $gl->amt_received;
-                // $gl->credit = '0';
-                // $gl->ref_detail = $gl->bus_type;
-                // $gl->trans_detail = $gl->trans_info;
+                $gl->account_code = $gl->debit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = $gl->amt_received;
+                $gl->credit = '0';
+                $gl->ref_detail = $gl->bus_type;
+                $gl->trans_detail = $gl->trans_info;
             
-                // $sql = $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
+                $sql = $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
             
-                // // debit-rcp | CR
-                // $gl->account_code = $ledger_mapping->{'debit'}->debit_account;
-                // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                // $gl->debit = '0';
-                // $gl->credit = $gl->amt_received;
+                // debit-rcp | CR
+                $gl->account_code = $ledger_mapping->{'debit'}->debit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = '0';
+                $gl->credit = $gl->amt_received;
             
-                // $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
+                $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
             
-                // $db->query($sql);
-                // $db->execute();
+                $db->query($sql);
+                $res = $db->execute();
 
                 echo json_encode(array('status' => true, 'message ' => $res, 'msg' => $post));
                 exit;
@@ -591,30 +530,30 @@
     }
 
     else if (($post['func'] ?? '') == 'savepayment' || ($post['func'] ?? '') == 'autopayment') {
-        // $sql = "SELECT t1.auto_id, t1.item, t1.branch_code, t1.risk_code, t1.debit_account, t1.credit_account FROM sys_tec_act t1 WHERE t1.branch_code = 'LAG/01/001' ";
-        // $sql .= "AND t1.risk_code = '" . $post['risk_code'] . "' ";
-        // $db->query($sql);
-        // $row = $db->resultSet();
+        $sql = "SELECT t1.auto_id, t1.item, t1.branch_code, t1.risk_code, t1.debit_account, t1.credit_account FROM sys_tec_act t1 WHERE t1.branch_code = 'LAG/01/001' ";
+        $sql .= "AND t1.risk_code = '" . $post['risk_code'] . "' ";
+        $db->query($sql);
+        $row = $db->resultSet();
 
-        // $ledger_mapping = (object)array();
-        // if (!empty($row)) {
-        //     foreach ($row as $v) {
-        //         $ledger_mapping->{$v->item} = $v;
-        //     }
-        // }
+        $ledger_mapping = (object)array();
+        if (!empty($row)) {
+            foreach ($row as $v) {
+                $ledger_mapping->{$v->item} = $v;
+            }
+        }
 
 
-        // $sql = "SELECT t1.auto_id, t1.account_code, t1.account_name, t1.group_code, coalesce(t1.bank, '') as bank, t2.group_name, t2.range_min, t2.range_max, t2.base_code, t2.base_name, t2.dr_cr FROM act_account t1 LEFT JOIN (SELECT t21.group_code, t21.group_name, t21.range_min, t21.range_max, t22.base_code, t22.base_name, t22.dr_cr FROM act_group t21 LEFT JOIN act_base t22 ON t21.base_code = t22.base_code) t2 ON t1.group_code = t2.group_code WHERE 1=1 ";
+        $sql = "SELECT t1.auto_id, t1.account_code, t1.account_name, t1.group_code, coalesce(t1.bank, '') as bank, t2.group_name, t2.range_min, t2.range_max, t2.base_code, t2.base_name, t2.dr_cr FROM act_account t1 LEFT JOIN (SELECT t21.group_code, t21.group_name, t21.range_min, t21.range_max, t22.base_code, t22.base_name, t22.dr_cr FROM act_group t21 LEFT JOIN act_base t22 ON t21.base_code = t22.base_code) t2 ON t1.group_code = t2.group_code WHERE 1=1 ";
         
-        // $db->query($sql);
-        // $row = $db->resultSet();
+        $db->query($sql);
+        $row = $db->resultSet();
     
-        // $accountChart = (object)array();
-        // if (!empty($row)) {
-        //     foreach ($row as $v) {
-        //         $accountChart->{$v->account_code} = $v;
-        //     }
-        // }
+        $accountChart = (object)array();
+        if (!empty($row)) {
+            foreach ($row as $v) {
+                $accountChart->{$v->account_code} = $v;
+            }
+        }
 
         
         $sql = "SELECT * FROM tec_policy_credit WHERE credit_code = '". $post['credit_code'] ."' ";
@@ -631,10 +570,10 @@
         $post['ref_code'] = $credit_note->credit_code;
         $post['trans_code'] = $post['payment_code'];
         $post['trans_type'] = "PYM";
-        $post['credit_account'] = "2000004";
+        $post['credit_account'] = "1017006";
         
-        $post['debit_account'] = "2000002";
-        // $post['debit_account'] = $ledger_mapping->{'credit'}->credit_account;
+        // $post['debit_account'] = "2000002";
+        $post['debit_account'] = $ledger_mapping->{'credit'}->credit_account;
             // var_dump($post);exit;
             // echo json_encode($post);exit;
 
@@ -646,37 +585,38 @@
             // $res = $db->execute();
             $res = $db->rowCount();
             // echo json_encode($res);exit;
+            // var_dump($res);exit;
             
             if ($res > 0) {
                 // var_dump($res);exit;
-                // $gl = clone (object)$post;
+                $gl = clone (object)$post;
                         
-                // $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'beneficiary', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
+                $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'beneficiary', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
             
-                // // delete existing
-                // $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$gl->payment_code}%' AND ref_code = '{$gl->ref_code}'");
-                // $db->execute();
+                // delete existing
+                $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$gl->payment_code}%' AND ref_code = '{$gl->ref_code}'");
+                $db->execute();
             
                 // // debit-rcp | DR
-                // $gl->account_code = $gl->debit_account;
-                // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                // $gl->debit = $gl->net_amount;
-                // $gl->credit = '0';
-                // $gl->ref_detail = $gl->bus_type;
-                // $gl->trans_detail = $gl->trans_info;
+                $gl->account_code = $gl->debit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = $gl->net_amount;
+                $gl->credit = '0';
+                $gl->ref_detail = $gl->bus_type;
+                $gl->trans_detail = $gl->trans_info;
             
-                // $sql = $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
+                $sql = $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
             
-                // // debit-rcp | CR
-                // $gl->account_code = $gl->credit_account;
-                // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                // $gl->debit = '0';
-                // $gl->credit = $gl->net_amount;
+                // debit-rcp | CR
+                $gl->account_code = $gl->credit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = '0';
+                $gl->credit = $gl->net_amount;
             
-                // $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
+                $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
             
-                // $db->query($sql);
-                // $db->execute();
+                $db->query($sql);
+                $db->execute();
 
                 echo json_encode(array('status' => true, 'message ' => $res, 'msg' => $post));
                 exit;
@@ -843,13 +783,13 @@
             let action = "";
             let url = 'http://localhost/migration/securisk.php';
             let rows = [];
-            let clients = {};
+            // let clients = {};
             const subriskObj = <?php echo json_encode($subriskObj) ?>;
             const insurersObj = <?php echo json_encode($insurersObj) ?>;
-            // console.log(subriskObj);
+            const clients = <?php echo json_encode($clients) ?>;
+            // console.log(insurersObj);
 
             let companyTable = (json)=>{
-                // console.log(json);return;
                 reset({});
                 document.querySelector('#saved').innerText = 0;
                 document.querySelector('#alreadyExist').innerText = 0
@@ -864,7 +804,8 @@
                 //clean the table
                 $(json.result + " > thead").find('tr').remove();
                 $(json.result + " > tbody").find('tr').remove();
-                var companyfields = ['username', 'password', 'submit_by', 'company_code', 'company_name',  'company_type', 'address', 'country', 'phone', 'contact'];
+                var companyfields = ['company_code', 'company_name'];
+                // var companyfields = ['username', 'password', 'submit_by', 'company_code', 'company_name','company_name_',  'company_type', 'address', 'country', 'phone', 'contact'];
                 
                 setTimeout(function() {
                     let html = '<tr disabled>';
@@ -875,6 +816,9 @@
                     $(json.result +" > thead").append(html);
                     
                     excel_data = Object.values(exceljson).map(function(v, i) {
+                        // console.log(v)
+                        // let insurer = String(v['company_name']??'').toLowerCase();
+                        // if(v === undefined || insurer === '')return;
                         counter++;
                         // let dddd = String(v['insurer']).substring(0, String(v['insurer']).indexOf(" "))
                         let mid = "000000" + counter;
@@ -884,23 +828,24 @@
                         v['address'] = "LAGOS";
                         v['country'] = "Nigeria";
                         v['phone'] = "09876654565";
-                        v['contact'] = v['company_name'];
                         v['rowNumber'] = i;
-                        v['registered_date'] =  moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
+                        v['registered_date'] =  moment(v['start_date'], 'D-MMM-YY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
                         let date = new Date(v['registered_date'])
                         let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
-                        v['username'] = String(v['company_name']).substring(0, String(v['company_name']).indexOf(" "))+ counter + '@' + 'gmail.com';
                         let company_code = 'CMP/' + mid.slice(-6) + "/" + monthYear;
-                        
-                        let insurer = v['company_name'];
-                        let insured = v['company_name'];
+                        let insurer = String(v['company_name']??'').trim().toLowerCase();
+                        // v['company_code'] = insurersObj[insurer];
+                        // let insurer = v['company_name'];
                         if(insurersObj[insurer] === undefined ){
                             insurersObj[insurer] = company_code;
                             v['company_code'] = company_code;
-
-                        }  else{
+                        } 
+                         else{
                             v['company_code'] = insurersObj[insurer];
                         }
+                        v['contact'] = insurer;
+                        v['username'] = String(v[insurer]).substring(0, String(v[insurer]).indexOf(" "))+ counter + '@' + 'gmail.com';
+                        v['company_name'] = insurer.toUpperCase();
                         
                         html = '<tr id="'+i+'" class="row">';
                         companyfields.forEach(function(v_, i_) {
@@ -948,10 +893,9 @@
 
                 });
             }
-
-            
+   
             let subriskTable = (json)=>{
-                // console.log(json);return;
+                // console.log(subriskObj);
                 reset({});
                 document.querySelector('#saved').innerText = 0;
                 document.querySelector('#alreadyExist').innerText = 0
@@ -966,7 +910,7 @@
                 //clean the table
                 $(json.result + " > thead").find('tr').remove();
                 $(json.result + " > tbody").find('tr').remove();
-                let subriskfields = ['subrisk_code', 'subrisk_name', 'risk_code', 'alpha', 'digit', 'submit_by', 'modified_by'];
+                let subriskfields = ['registered_date', 'subrisk_code', 'subrisk_name', 'risk_code', 'risk_name', 'alpha', 'digit'];
                 
                 setTimeout(function() {
                     let html = '<tr disabled>';
@@ -978,7 +922,8 @@
                     
                     excel_data = Object.values(exceljson).map(function(v, i) {
                         counter++;
-                        v['registered_date'] =  moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
+                        v['registered_date'] =  moment(v['start_date'], 'D-MMM-YY').format('YYYY-MM-DD');
+                        // v['registered_date'] =  moment(v['start_date'], 'D-MMM-YY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
                         let date = new Date(v['registered_date'])
                         let month = date.getMonth()+1;
                         let mid = "000" + counter + month;
@@ -987,11 +932,64 @@
                         v['rowNumber'] = i;
                         let subrisk_code = 'S' + mid.slice(-3);
                         
-                        let subrisk_name = v['subrisk_name'];
+                        let subrisk_name = String(v['subrisk_name']).trim().toLowerCase();
+                        let risk_name = String(v['risk_name']).trim().toLowerCase();
+                        let risk_code = '';
                         if(subriskObj[subrisk_name] === undefined ){
-                            subriskObj[subrisk_name] = {"subrisk_code": subrisk_code, "risk_code": v['risk_code']};
+                            risk_code = '';
+                            if(risk_name === 'aviation' ){
+                                risk_code = 'A'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            if(risk_name === 'motor' ){
+                                risk_code = 'M'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            if(risk_name === 'general accident' ){
+                                risk_code = 'G'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            if(risk_name === 'fire' ){
+                                risk_code = 'F'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            if(risk_name === 'life' ){
+                                risk_code = 'L'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            if(risk_name === 'marine' ){
+                                risk_code = 'M'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            if(risk_name === 'travel' ){
+                                risk_code = 'T'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            if(risk_name === 'agriculture' ){
+                                risk_code = 'R'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            if(risk_name === 'engineering' ){
+                                risk_code = 'E'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            if(risk_name === 'credit life' ){
+                                risk_code = 'C'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            if(risk_name === 'bond' ){
+                                risk_code = 'B'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            if(risk_name === 'oil and gas' ){
+                                risk_code = 'O'
+                                v['alpha'] = subrisk_name.substring(0, 3)
+                            }
+                            v['risk_code'] = risk_code
                             v['subrisk_code'] = subrisk_code;
-                            v['digit'] = mid.slice(-3);
+                            let digit = mid.slice(-3);;
+                            v['digit'] = digit
+                            subriskObj[subrisk_name] = {"subrisk_code": subrisk_code, "risk_code": risk_code, 'digit': digit, 'alpha':v['alpha']};
 
                         }  else{
                             v['subrisk_code'] = subriskObj[subrisk_name]['subrisk_code'];
@@ -999,7 +997,8 @@
                             v['alpha'] = subriskObj[subrisk_name]['alpha'];
                             v['digit'] = subriskObj[subrisk_name]['digit'];
                         }
-                        
+                        v['subrisk_name'] = String(subrisk_name).toUpperCase();
+                        v['risk_name'] = String(risk_name).toUpperCase();
                         html = '<tr id="'+i+'" class="row">';
                         subriskfields.forEach(function(v_, i_) {
                             if (typeof v[v_] === undefined) {
@@ -1063,7 +1062,7 @@
                 //clean the table
                 $(json.result + " > thead").find('tr').remove();
                 $(json.result + " > tbody").find('tr').remove();
-                var clientFields = ['registered_date', 'client_code', 'username', 'start_date', 'end_date', 'agent_code', 'title', 'first_name', 'last_name', 'middle_name', 'client_name', 'gender', 'marital_status', 'business', 'address', 'state', 'country', 'religion', 'phone', 'occupation', 'birth_date', 'business', 'id_type', 'id_number', 'sector', 'submit_by', 'submit_on', 'modified_by', 'modified_on', 'username2'];
+                var clientFields = ['SN', 'client_code', 'title', 'first_name', 'last_name', 'middle_name', 'client_name'];
 
                 setTimeout(function() {
 
@@ -1075,39 +1074,28 @@
                     $(json.result +" > thead").append(html);
                     //
                     excel_data = Object.values(exceljson).map(function(v, i) {
-                        v['rowNumber'] = i;
-                        if(typeof v['insured'] === "undefined") {
-                            v['insured'] = "empty";
-                        }
-                        if(typeof v['trans_date'] === "undefined") {
-                            v['trans_date'] = "";
-                        }
-                        if(typeof v['sum_insured'] === "undefined" ) {
-                            v['sum_insured'] = 0;
-                            // return
-                        }
-                        if(typeof v['gross_premium'] === "undefined" ) {
-                            v['gross_premium'] = 0;
-                            // return
-                        }
-                        if(typeof v['commission'] === "undefined" ) {
-                            v['commission'] = 0;
-                            // return
-                        }
-                        if(typeof v['net_amount'] === "undefined") {
-                            v['net_amount'] = 0;
-                            // return
-                        }
-                        if(typeof v['subrisk_name'] === "undefined") {
-                            v['subrisk_name'] = "";
-                            // return
-                        }
-                        if(typeof v['policy_code'] === "undefined") {
-                            v['policy_code'] = "";
-                            // return
+                        let insured = String(v['insured'] ?? '').trim().toLowerCase();
+                        v['rowNumber'] = i +1;
+                        counter++;
+                        v['registered_date'] =  moment(v['start_date'], 'D-MMM-YY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
+                        
+                        let mid = "000000" + counter;
+                        let date = new Date(v['registered_date']);
+                        let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
+                        v['username'] = 'libclient'+ monthYear + i + '@gmail.com';
+                        v['agent_code'] = 'A/20/000003';
+                        v['business'] = 'Corporate';
+                        let client_code =  'CL/LIB/' + mid.slice(-6) + '/' + monthYear;
+                        // let insured = v['insured'];
+                        if(clients[insured] === undefined ){
+                            clients[insured] = client_code;
+                            v['client_code'] = client_code;
+
+                        }  else{
+                            v['client_code'] = clients[insured];
                         }
                         if(((v['business'] ?? '').trim()) !== 'Corporate'){
-                           let names = (v['insured'] ?? '').trim().split(' ')
+                           let names = insured.trim().split(' ')
                             v['first_name'] = names[0] ?? '';
                             v['last_name'] = names[1] ?? '';
                             v['middle_name'] = names[2] ?? '';
@@ -1128,34 +1116,15 @@
                             }
                             
                         }else{
-                            v['first_name'] = (v['insured'] ?? '').trim()
+                            v['first_name'] = insured.toUpperCase();
                             v['middle_name'] = '';
-                            v['last_name'] = (v['insured'] ?? '').trim();
+                            v['last_name'] =  insured.toUpperCase();
                             v['title'] = "Mr.";
                             v['marital_status'] = "Single";
                             v['gender'] = "Male";
                             v['id_type'] = 'CAC_NUMBER';
                             v['id_number'] = '123' + i;
-                            v['client_name'] = v['insured'];
-                        }
-                        counter++;
-                        // v['registered_date'] =  moment(v['trans_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
-                        v['registered_date'] =  moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
-                        
-                        let mid = "000000" + counter;
-                        let date = new Date(v['registered_date'])
-                        let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
-                        v['rowNumber'] = i;
-                        v['username'] = 'afriglobalclient' + i + '@' + 'gmail.com';
-                        v['agent_code'] = 'A/20/000003';
-                        let client_code =  'CL/AFG/' + mid.slice(-6) + '/' + monthYear;
-                        let insured = v['insured'];
-                        if(clients[insured] === undefined ){
-                            clients[insured] = client_code;
-                            v['client_code'] = client_code;
-
-                        }  else{
-                            v['client_code'] = clients[insured];
+                            v['client_name'] =  insured.toUpperCase();
                         }
                         v['address'] = 'LAGOS';
                         v['phone'] = '345678765';
@@ -1165,14 +1134,14 @@
                         v['state'] = 'LAGOS';
                         v['country'] = 'NIGERIA';
                         v['sector'] = 'private';
-                        v['username2'] = "igbokwe@afriglobal.com.ng";
+                        v['username2'] = "migartion@lib.com";
                         v['birth_date'] = moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
 
-                        v['submit_by'] = 'igbokwe@afriglobal.com.ng';//lib
+                        v['submit_by'] = 'migartion@lib.com';
                         v['submit_on'] =  v['registered_date'];
-                        v['modified_by'] = 'igbokwe@afriglobal.com.ng';//lib
+                        v['modified_by'] = 'migartion@lib.com';
                         v['modified_on'] = v['registered_date'];
-                        //
+                        v['SN'] = v['rowNumber'];
                         // exceljson[i] = v;
                         html = '<tr id="'+i+'" class="row">';
                         clientFields.forEach(function(v_, i_) {
@@ -1228,36 +1197,34 @@
                 reset({});
                 document.querySelector('#saved').innerText = 0;
                 document.querySelector('#alreadyExist').innerText = 0
-                // let url = './securisk.php?client=policy';
                 action = "autopolicy";
                 $("#action_name").html("Policy");
                 $(json.result + "> thead").find('tr').remove();
                 $(json.result + "> tbody").find('tr').remove();
-                let policyFields = ['trans_date', 'policy_code', 'client_code','client_name', 'first_name', 'last_name', 'middle_name', 'agent_code', 'trans_date', 'subrisk_name', 'subrisk_code', 'risk_code', 'branch_code', 'submit_by', 'submit_on', 'modified_by', 'modified_on' ];
+                let policyFields = ['SN', 'trans_date', 'policy_code', 'client_code','client_name','subrisk_name','subrisk_code','risk_code' ];
 
                 setTimeout(function() {
-
                     let html = '<tr disabled>';
                     policyFields.forEach(function(v_, i_) {
                         html += '<td><strong>' + v_ + '</strong></td>';
                     });
                     html += '</tr>';
                     $(json.result +" > thead").append(html);
-                    // console.log(exceljson)
-                    //
-                    excel_data = excel_data.map(function(v, i) { 
-                        // v['rowNumber'] = i;
+                    excel_data = excel_data.map(function(v, i) {
+                        v['SN'] = v['rowNumber'];
+                        let subrisk_name = String(v['subrisk_name']).trim().toLowerCase();
                         v['branch_code'] = 'LAG/01/001';
                         v['agent_code'] = 'A/20/000003';
-                        v['trans_date'] =  moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
-                        // v['submit_by'] = 'Uchenna.okorie@fsl.ng';
-                        // v['submit_on'] = v['trans_date'];
-                        v['approved_by'] = 'migration@afriglobal.com.ng';
-                        // v['modified_on'] = v['trans_date'];
-                        if(v['policy_code'] == "TBA") v['policy_code'] = v['policy_broker_code'];
-                        let subrisk_name = v['subrisk_name'].trim();
-                        v['subrisk_code'] = (subriskObj[subrisk_name] ?? '')['subrisk_code'];
-                        v['risk_code'] = (subriskObj[subrisk_name] ?? '')['risk_code'];
+                        v['trans_date'] =  moment(v['start_date'], 'D-MMM-YY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
+                        v['approved_by'] = 'migration@lib.com';
+                        let date = new Date(v['trans_date']);
+                        let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
+                        if(v['policy_code'] == "TBA") {
+                            v['policy_code'] = v['policy_code']+ "0" + i + monthYear;
+                        }
+                        
+                        v['subrisk_code'] = (subriskObj[subrisk_name] ?? '')['subrisk_code'] ?? '';
+                        v['risk_code'] = (subriskObj[subrisk_name] ?? '')['risk_code']??'' ;
                         
                         html = '<tr id="'+i+'" class="row">';
                         policyFields.forEach(function(v_, i_) {
@@ -1288,7 +1255,6 @@
 
                             $.post(url, row, function(data) {
                                 let current = $('#result > tbody').find('tr:eq(' + rowId + ')');
-                                //
                                 if (data.status) {
                                     current.css({
                                         'background-color': '#c4ffbd'
@@ -1314,7 +1280,7 @@
                 $(json.result + " > tbody").find('tr').remove();
                 let counter = 0;
                 // INSERT
-                let debitFields = ['client_name', 'debit_code', 'policy_code','sum_insured', 'gross_premium', 'premium_rate','com_rate', 'vat_rate', 'net_amount', 'ref_code', 'commission', 'client_code', 'agent_code', 'agent_prop', 'trans_date', 'trans_mode', 'risk_code', 'subrisk_name', 'subrisk_code', 'branch_code', 'start_date', 'end_date', 'bus_type', 'currency_code', 'currency_rate', 'submit_by', 'submit_on', 'modified_by', 'modified_on', 'approved_by' ];
+                let debitFields = ['SN', 'trans_date', 'client_name', 'client_code', 'policy_code', 'debit_code', 'sum_insured', 'gross_premium', 'premium_rate','com_rate', 'vat_rate', 'commission', 'risk_code', 'subrisk_name', 'subrisk_code', 'start_date', 'end_date' ];
 
                 setTimeout(function() {
 
@@ -1326,38 +1292,26 @@
                     $(json.result + " > thead").append(html);
                     //first = false;
                     excel_data = excel_data.map(function(v, i) { 
-                        // let sumInsured = parseFloat(v['sum_insured']);
-                        
-                        let subrisk_name = v['subrisk_name'].toLowerCase();
-                        v['risk_code'] = subriskObj[subrisk_name]['risk_code'];
-                        v['subrisk_code'] = subriskObj[subrisk_name]['subrisk_code'];
-                        v['premium_rate'] = subriskObj[subrisk_name]['premium_rate'];
-                        v['com_rate'] = subriskObj[subrisk_name]['com_rate'];
-                        v['vat_rate'] = subriskObj[subrisk_name]['vat_rate'];
-
-                        v['sum_insured'] = (v['gross_premium'] * 100) / v['premium_rate'];
-                        if(v['risk_code'] === 'V'){
-                            v['com_rate'] = 12.5;
-                        }else{
-                            v['com_rate'] = 20;
-                        }
+                        v['SN'] = v['rowNumber'];
+                        let subrisk_name = String(v['subrisk_name']).toLowerCase();
+                        v['risk_code'] = (subriskObj[subrisk_name]?? '')['risk_code'] ?? '';
+                        v['subrisk_code'] = (subriskObj[subrisk_name]??'')['subrisk_code']??'';
                         v['agent_prop'] = '100';
-                        v['trans_date'] =  moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
-                        v['start_date'] = moment(v['start_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
-                        v['end_date'] =  moment(v['end_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
-                        v['approved_by'] = 'migration@afriglobal.com.ng';
+                        v['trans_date'] =  moment(v['start_date'], 'D-MMM-YY').format('YYYY-MM-DD');
+                        v['start_date'] = moment(v['start_date'], 'D-MMM-YY').format('YYYY-MM-DD');
+                        v['end_date'] =  moment(v['end_date'], 'D-MMM-YY').format('YYYY-MM-DD');
+                        v['approved_by'] = 'migration@lib.com';
                         // v['username2'] = 'migration@afriglobal.com.ng';
                         v['currency_code'] = 'NGN';
                         v['currency_rate'] = '1';
-                        counter++;
-
-                        // let date = new Date(v['start_date'])
-                        // let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
-                        
-                        // let mid = "000000" + counter;
-                        // let debit_code =  'DN/AFG/' + mid.slice(-6) + '/' + monthYear;
-                        // v['debit_code'] = debit_code;
                         v['trans_mode'] = 'Transfer';
+                        counter++;
+                        let date = new Date(v['start_date'])
+                        let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
+                        let mid = "000000" + counter;
+                        let debit_code = ('DN/LIB/' + mid.slice(-6) + '/' + monthYear);
+                        // let debit_code =  v['debit_code'] === 'TBA' ? ('DN/AFG/' + mid.slice(-6) + '/' + monthYear) : v['debit_code'];
+                        v['debit_code'] = debit_code;
                         html = '<tr id="'+i+'" class="row">';
                         //
                         debitFields.forEach(function(v_, i_) {
@@ -1415,7 +1369,7 @@
                 $(json.result + " > tbody").find('tr').remove();
                 let counter = 0;
                 // INSERT
-                 let creditFields = ['credit_code', 'client_code', 'policy_code', 'debit_code', 'ref_code', 'sum_insured', 'gross_premium','commission', 'net_amount', 'start_date', 'end_date', 'risk_code', 'subrisk_name', 'company_code','company_name', 'bank_account', 'trans_date', 'trans_mode', 'bus_type', 'status', 'description', 'bus_prop', 'submit_by', 'modified_by', 'approved_by'];
+                 let creditFields =  ['SN', 'net_amount', 'trans_date','company_code','company_name', 'client_code','client_name', 'policy_code', 'debit_code', 'credit_code'];
 
                 setTimeout(function() {
 
@@ -1427,21 +1381,21 @@
                     html += '</tr>';
                     $(json.result + " > thead").append(html);
                     excel_data = excel_data.map(function(v, i) { 
-                        // v['rowNumber'] = i;
+                        v['SN'] = v['rowNumber'];
+                        let insurer = String(v['company_name']??'').toLowerCase();
+                        if(v === undefined || insurer === '')return;
                         counter++;
                         let date = new Date(v['start_date']);
                         let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
 
                         let mid = "000000" + counter;
-                        let credit_code =  'CN/AFG/' + mid.slice(-6) + '/' + monthYear;
+                        let credit_code =  'CN/AFG/' + mid.slice(-6) + '/' + monthYear + "0DC";
                         v['ref_code'] = v['debit_code'];
                         v['credit_code'] = credit_code;
                         v['bus_type'] = 'INS';
                         v['status'] = '1';
-                        v['rowNumber'] = i;
-                        v['bank_account'] = '1000008';
-                        // let insurer = v['company_name'];
-                        let company_code = insurersObj[v['company_name']];
+                        // v['bank_account'] = '1000008';
+                        let company_code = insurersObj[insurer];
                         v['company_code'] = company_code;
                         v['bus_prop'] = 100;
                         html = '<tr id="'+i+'" class="row">';
@@ -1465,7 +1419,8 @@
                         let row = {};
                         let elem = event.target.closest('tr');
                         let rowId = elem.id;
-                        row = exceljson[rowId];
+                        // console.log(rowId)
+                        row = excel_data[rowId];
                         row['func'] = 'autocredit';
                         if (rowId >= 0) {
 
@@ -1498,7 +1453,7 @@
                 $(json.result + " > tbody").find('tr').remove();
                 let counter = 0;
                 // INSERT
-                let debitFields = ['client_name', 'receipt_code', 'debit_code', 'ref_code', 'policy_code', 'client_code', 'agent_code', 'agent_prop', 'debit_account', 'credit_account', 'trans_date', 'trans_mode', 'risk_code', 'subrisk_name', 'subrisk_code', 'branch_code', 'start_date', 'end_date', 'bus_type','sum_insured', 'premium_rate', 'gross_premium', 'amt_received', 'commission', 'com_rate', 'vat_rate', 'net_amount', 'currency_code', 'currency_rate', 'submit_by', 'submit_on', 'modified_by', 'modified_on', 'approved_by' ];
+                let debitFields = ['SN', 'trans_date', 'client_name', 'client_code', 'receipt_code', 'debit_code',  'policy_code', 'amt_received'];
                 
                 setTimeout(function() {
 
@@ -1511,19 +1466,21 @@
 
                     excel_data = excel_data.map(function(v, i) { 
                         // let sumInsured = parseFloat(v['sum_insured']);
-                        // v['rowNumber'] = i;
+                        v['SN'] = v['rowNumber']
                         // if(v['gross_premium'] === undefined || v['sum_insured'] === undefined || sumInsured === 0  || v['risk_code'] === undefined) return;
                         counter++;
-
+                        //dont remove this, is for auto generate code
                         let date = new Date(v['start_date'])
                         let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
-                        
                         let mid = "000000" + counter;
-                        let receipt_code =  'RCP/AFG/' + mid.slice(-6) + '/' + monthYear;
-                        v['receipt_code'] = (v['receipt_code']) ?? receipt_code;
-                        v['ref_code'] = v['debit_code'];
-                        v['amt_received'] = (v['amount_received']) ?? 0;
-                        v['trans_date'] = moment(v['receipt_date'], 'DD/MM/YYYY').format('YYYY-MM-DD') ?? v['start_date'];
+                        let receipt_code = 'RCP/AFG/D' + mid.slice(-6) + '/' + monthYear + "0DC"
+                        // let receipt_code =  v['receipt_code'] === 'TBA' ? ('RCP/AFG/D' + mid.slice(-6) + '/' + monthYear) : v['receipt_code']
+                        v['receipt_code'] = receipt_code;
+                        // v['ref_code'] = v['debit_code'];
+                        //////////////////////////////////////////////////////////////////////////////////
+                        v['amt_received'] = v['gross_premium'] ?? 0;
+                        // v['trans_date'] = v['date_of_lodgement'];
+                        // v['trans_date'] = moment(v['date_of_lodgement']??'', 'DD/MM/YYYY').format('YYYY-MM-DD') ?? v['date_of_lodgement'];
                         v['bus_type'] = "RCP";
                         //////////////////////////////////////////////////////////////////////////
                         html = '<tr id="'+i+'" class="row">';
@@ -1547,7 +1504,7 @@
                         let row = {};
                         let elem = event.target.closest('tr');
                         let rowId = elem.id;
-                        row = exceljson[rowId];
+                        row = excel_data[rowId];
                         row['func'] = 'autoreceipt';
                         if (rowId >= 0) {
 
@@ -1580,7 +1537,7 @@
                 $(json.result + " > tbody").find('tr').remove();
                 let counter = 0;
                 // INSERT
-                let paymentFields = ['payment_code','credit_code', 'client_name', 'receipt_code', 'debit_code', 'ref_code', 'policy_code', 'client_code', 'agent_code', 'agent_prop', 'debit_account', 'credit_account', 'trans_date', 'trans_mode', 'risk_code', 'subrisk_name', 'subrisk_code', 'branch_code', 'start_date', 'end_date', 'bus_type','sum_insured', 'premium_rate', 'gross_premium', 'commission', 'com_rate', 'vat_rate', 'net_amount', 'currency_code', 'currency_rate', 'submit_by', 'submit_on', 'modified_by', 'modified_on', 'approved_by' ];
+                let paymentFields = ['SN', 'trans_date', 'payment_code','credit_code', 'policy_code', 'client_code', 'sum_insured', 'gross_premium', 'net_premium' ];
                 
                 setTimeout(function() {
 
@@ -1591,19 +1548,23 @@
                     html += '</tr>';
                     $(json.result + " > thead").append(html);
                     excel_data = excel_data.map(function(v, i) { 
-                        let sumInsured = parseFloat(v['sum_insured']);
+                        v['SN'] = v['rowNumber']
+                        // let sumInsured = parseFloat(v['sum_insured']);
+                        // console.log(v['company_name'])
+                        // let insurer = v['company_name']??'';
+                        if(v === undefined || (v['company_name']??'') === '')return;
                         counter++;
 
+                        // let date = new Date("2/2/2025")
                         let date = new Date(v['start_date'])
                         let monthYear = date.getMonth() + 1 +""+ date.getFullYear();
-                        
                         let mid = "000000" + counter;
-                        let payment_code =  'P/FSL/' + mid.slice(-6) + '/' + monthYear;
+                        let payment_code =  'P/AFG/' + mid.slice(-6) + '/' + monthYear+ "0DC";
                         v['payment_code'] = payment_code;
                         v['ref_code'] = v['credit_code'];
-                        v['gross_premium'] = v['amount_remitted'] ?? v['gross_premium'];
-                        v['trans_date'] = (moment(v['receipt_date'], 'DD/MM/YYYY').format('YYYY-MM-DD')) ?? v['trans_date'];
-                        // v['trans_date'] = (moment(v['date_remitted'], 'DD/MM/YYYY').format('YYYY-MM-DD')) ?? v['trans_date'];
+                        v['gross_premium'] = v['net_amount'] ?? (v['gross_premium'] - v['commission']);
+                        // v['trans_date'] = v['start_date'];
+                        // v['trans_date'] = (moment(v['date_of_lodgement'], 'DD/MM/YYYY').format('YYYY-MM-DD')) ?? v['trans_date'];
                         v['bus_type'] = "PYM";
                         html = '<tr id="'+i+'" class="row">';
                         paymentFields.forEach(function(v_, i_) {
@@ -1630,6 +1591,7 @@
                         if (rowId >= 0) {
 
                             $.post(url, row, function(data) {
+                                console.log(data)
                                 let current = $('#result > tbody').find('tr:eq(' + rowId + ')');
                                 //
                                 if (data.status) {
@@ -1680,11 +1642,11 @@
                             }
 
                             if (xlsxflag) {
-                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["october_2023"]);
-                                console.log(exceljson);
+                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["lib_naicom_rpt_2021"]);
+                                // console.log(exceljson);
                             } else {
-                                exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets["october_2023"]);
-                                console.log(exceljson);
+                                exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets["lib_naicom_rpt_2021"]);
+                                // console.log(exceljson);
                             }
                         }
                         if (xlsxflag) {
