@@ -626,7 +626,7 @@
                                 risk_code = 'V'
                                 v['alpha'] = subrisk_name.substring(0, 3)
                             }
-                            if(risk_name === 'general accident'){
+                            if(risk_name === 'general accident' || risk_name === 'liability'){
                                 risk_code = 'G'
                                 v['alpha'] = subrisk_name.substring(0, 3)
                             }
@@ -638,7 +638,7 @@
                                 risk_code = 'L'
                                 v['alpha'] = subrisk_name.substring(0, 3)
                             }
-                            if(risk_name === 'marine' ){
+                            if(risk_name === 'marine' || risk_name === 'marine cargo' ){
                                 risk_code = 'M'
                                 v['alpha'] = subrisk_name.substring(0, 3)
                             }
@@ -646,7 +646,7 @@
                                 risk_code = 'T'
                                 v['alpha'] = subrisk_name.substring(0, 3)
                             }
-                            if(risk_name === 'agriculture' ){
+                            if(risk_name === 'agriculture' || risk_name === 'agric' ){
                                 risk_code = 'R'
                                 v['alpha'] = subrisk_name.substring(0, 3)
                             }
@@ -658,7 +658,7 @@
                                 risk_code = 'C'
                                 v['alpha'] = subrisk_name.substring(0, 3)
                             }
-                            if(risk_name === 'bond' ){
+                            if(risk_name === 'bond' || risk_name === 'bonds' ){
                                 risk_code = 'B'
                                 v['alpha'] = subrisk_name.substring(0, 3)
                             }
@@ -1022,11 +1022,11 @@
                         let monthYear = month +""+ fullYear;
 
                         let mid = "00000" + counter;
-                        v['username'] = 'phindolclient.' + page + monthYear + i + '@gmail.com';
+                        v['username'] = 'thriveclient.' + page + monthYear + i + '@gmail.com';
                         v['business'] = 'Corporate';
                         let agent_code = ((v['agent_name'] ?? '').toLowerCase() == '' || (v['agent_name'] ?? '').toLowerCase() == undefined) ? 'direct' : v['agent_name'];
                         v['agent_code'] = agents[agent_code]??''
-                        let client_code =  'CL/RA/'+  (page.toUpperCase()) + mid.slice(-6) + '/' + monthYear;
+                        let client_code =  'CL/TR/'+  (page.toUpperCase()) + mid.slice(-6) + '/' + monthYear;
                         if(clients[insured] === undefined ){
                             clients[insured] = client_code;
                             v['client_code'] = client_code;
@@ -1100,7 +1100,7 @@
                         // exceljson[i] = v;
 
                         html = '<tr id="'+i+'" class="row">';
-                        clientFields.forEach(function(v_, i_) {
+                        clientFields.forEach(function(v_, i_) { 
                             //
                             if (typeof v[v_] === undefined) {
 
@@ -1354,6 +1354,13 @@
                         v['agent_prop'] = '100';
                         v['approved_by'] =  v['sys_user'] ;
                         v['trans_mode'] = 'Transfer';
+
+                        let end_date = v['end_date'];
+                        if(end_date === null || end_date === '' || end_date === undefined){
+                            // end_date = moment()
+                            v['end_date'] = moment(end_date).add(1, 'y'); 
+                        }
+
                         counter++;
                         // v['trans_date'] = v['start_date'];
                         let date = new Date(v['start_date'])
@@ -1992,10 +1999,10 @@
                             }
 
                             if (xlsxflag) {
-                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["thrive_tb"]);
+                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["2020"]);
                                 console.log(exceljson);
                             } else {
-                                exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets["thrive_tb"]);
+                                exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets["2020"]);
                                 console.log(exceljson);
                             }
                         }
