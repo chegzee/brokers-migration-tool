@@ -66,20 +66,20 @@ class SqlQuery{
         return $this->query;
     }
 
-    public function getCompanies($arg = array()) {
-        $sql = "SELECT t1.* FROM tec_company t1 ";
+    // public function getCompanies($arg = array()) {
+    //     $sql = "SELECT t1.* FROM tec_company t1 ";
         
-        $sql .= "ORDER BY t1.company_name";
-        //return [$sql];
+    //     $sql .= "ORDER BY t1.company_name";
+    //     //return [$sql];
         
-        $db->query($sql);
-        $db->resultSet();
-        $insurersObj = (object)array();
-        if ($rows !== false) {
-            foreach ($rows as $v) {
-                $insurersObj->{$v->company_name} = $v->company_code;
-            }
-        }
-    }
+    //     $db->query($sql);
+    //     $db->resultSet();
+    //     $insurersObj = (object)array();
+    //     if ($rows !== false) {
+    //         foreach ($rows as $v) {
+    //             $insurersObj->{$v->company_name} = $v->company_code;
+    //         }
+    //     }
+    // }
 
 }

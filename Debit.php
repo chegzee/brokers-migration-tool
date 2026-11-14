@@ -4,7 +4,8 @@
 
     
     $post = filter_input_array(INPUT_POST);
-    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_phindol');
+    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_busag');
+    $sqlQuery = new SqlQuery();
     
     // var_dump($post['client_code']);exit;
     
@@ -16,6 +17,7 @@
     $sql = "SELECT t1.auto_id, t1.item, t1.branch_code, t1.risk_code, t1.debit_account, t1.credit_account FROM sys_tec_act t1 WHERE t1.branch_code = '".$post['branch_code']."' ";
     $sql .= "AND t1.risk_code = '" . $post['risk_code'] . "' ";
     
+        // var_dump($sql);exit;
     $db->query($sql);
     $row = $db->resultSet();
     $ledger_mapping = (object)array();
@@ -25,7 +27,6 @@
             $ledger_mapping->{$v->item} = $v;
         }
     }
-
 
     $sql = "SELECT t1.auto_id, t1.account_code, t1.account_name, t1.group_code, coalesce(t1.bank, '') as bank, t2.group_name, t2.range_min, t2.range_max, t2.base_code, t2.base_name, t2.dr_cr FROM act_account t1 LEFT JOIN (SELECT t21.group_code, t21.group_name, t21.range_min, t21.range_max, t22.base_code, t22.base_name, t22.dr_cr FROM act_group t21 LEFT JOIN act_base t22 ON t21.base_code = t22.base_code) t2 ON t1.group_code = t2.group_code WHERE 1=1 ";
     
@@ -42,11 +43,12 @@
         $prem = ($post["gross_premium"] ?? 0) == 0;
         $comm = ($post["commission"] ?? 0) == 0;
         $sum_in = ($post["sum_insured"] ?? 0) == 0;
+        $policy_code = ($post["policy_code"] ?? '') == '';
         
         $post['other_charge'] = 0;
         // var_dump($prem);exit;
 
-        if($prem){
+        if($policy_code){
 
             $sql = "SELECT t1.*, t2.client_code, t2.client_name, t3.agent_name, t4.subrisk_name, t4.risk_code, t4.risk_name, t5.branch_name 
             FROM tec_policy t1 
@@ -78,6 +80,7 @@
                 echo json_encode(array('status' => false, 'last_dn'=>true, 'action' => 'debit', 'ref_code' => $debit->debit_code, "td_cell" => "#ref_code"));
                 exit;
             }
+
             if($policy->DN === false){
                  echo json_encode(array('status' => false, 'last_dn'=>false, 'action' => 'debit', 'ref_code' => '', "td_cell" => "#ref_code"));
                 exit;
@@ -95,7 +98,7 @@
         }
         
         $sql = "SELECT t1.*, t2.client_code, t2.client_name, t3.agent_name, t4.subrisk_name, t4.risk_code, t4.risk_name, t5.branch_name 
-        FROM tec_policy t1 
+        FROM tec_policy t1
         LEFT JOIN (SELECT t21.client_code, if(t21.business = 'Corporate',COALESCE(t21.first_name,''),TRIM(CONCAT(COALESCE(t21.title,''),' ',COALESCE(t21.last_name,''),' ',COALESCE(t21.first_name,'')))) client_name 
         FROM tec_client t21) t2 ON t1.client_code = t2.client_code 
         LEFT JOIN (SELECT t31.agent_code, t31.agent_name FROM tec_agent t31) t3 ON t1.agent_code = t3.agent_code 
@@ -108,11 +111,12 @@
         
         $sql .= " LIMIT 1 ";
         //return $sql;
-        
+        // var_dump($sql);exit;
         $db->query($sql);
         $policy = $db->single();
 
         if(!empty($policy)) {
+
             $post['policy_code'] = $policy->policy_code;
             $post['client_code'] = $policy->client_code;
             // last  DN
@@ -145,6 +149,7 @@
         $post['credit_account'] = $ledger_mapping->debit->credit_account;
 
         if(empty($policy->DN)){
+            // var_dump("scared seg");exit;
             $post['bus_type'] = 'NEW';
             $post['ref_code'] = $post['debit_code'];
             $post["description"] = "BEING PREMIUM ON POLICY " . $post['policy_code'];
@@ -152,10 +157,10 @@
             $sql = "INSERT INTO tec_policy_debit (`debit_code`,`ref_code`,`policy_code`, `client_code`, `agent_code`, `agent_prop`,`debit_account`, `credit_account`, `trans_date`, `trans_mode`, `subrisk_code`, `branch_code`, `start_date`, `end_date`, `bus_type`, `sum_insured`,`gross_premium`, `vat_rate`, `com_rate`, `premium_rate`, `other_charge`,`description`,  `submit_by`, `submit_on` , `modified_by`, `modified_on`,  `approved_by`, `username2`) VALUES ('" . $post['debit_code'] . "', '" . $post['ref_code'] . "', '" . $post['policy_code'] . "', '" . $post['client_code'] . "', '" . $post['agent_code'] . "', '" . $post['agent_prop'] . "', '" . $post['debit_account'] . "', '" . $post['credit_account'] . "', '" . $post['trans_date'] . "', '" . $post['trans_mode'] . "', '" . $post['subrisk_code'] . "', '" . $post['branch_code'] . "', '" . $post['start_date'] . "', '" . $post['end_date'] . "', '" . $post['bus_type'] . "', '" . $post['sum_insured'] . "', '" . $post['gross_premium'] . "', '" . $post['vat_rate'] . "', '" . $post['com_rate'] . "', '" . $post['premium_rate'] . "', '" . $post['other_charge'] . "', '" . $post['description'] . "', '" . $post['submit_by'] . "', '" . $post['submit_on'] . "', '" . $post['modified_by'] . "', '" . $post['modified_on'] . "', '" . $post['approved_by'] . "',  '" . $post['username2'] . "')";
             
             $db->query($sql);
-            // $res = $db->rowCount();
-            $res = $db->execute();
-            echo json_encode(array('status' => true, 'message' => 'SAVE SUCCESSFUL', 'action' => 'debit', 'ref_code' => $post['debit_code'], "td_cell" => "#ref_code"));
-            exit;
+            $res = $db->rowCount();
+            // $res = $db->execute();
+            // echo json_encode(array('status' => true, 'message' => 'SAVE SUCCESSFUL', 'action' => 'debit', 'ref_code' => $post['debit_code'], "td_cell" => "#ref_code"));
+            // exit;
 
         }
         else{
@@ -165,101 +170,114 @@
             $post['description'] = "BEING RENEWAL PREMIUM ON POLICY " . $policy->policy_code;
             
             $sql = "INSERT INTO tec_policy_debit (`debit_code`,`ref_code`,`policy_code`, `client_code`, `agent_code`, `agent_prop`,`debit_account`, `credit_account`, `trans_date`, `trans_mode`, `subrisk_code`, `branch_code`, `start_date`, `end_date`, `bus_type`, `sum_insured`,`gross_premium`, `vat_rate`, `com_rate`, `premium_rate`, `other_charge`,`description`,  `submit_by`, `submit_on` , `modified_by`, `modified_on`,  `approved_by`, `username2`) VALUES ('" . $post['debit_code'] . "', '" . $post['ref_code'] . "', '" . $post['policy_code'] . "', '" . $post['client_code'] . "', '" . $post['agent_code'] . "', '" . $post['agent_prop'] . "', '" . $post['debit_account'] . "', '" . $post['credit_account'] . "', '" . $post['trans_date'] . "', '" . $post['trans_mode'] . "', '" . $post['subrisk_code'] . "', '" . $post['branch_code'] . "', '" . $post['start_date'] . "', '" . $post['end_date'] . "', '" . $post['bus_type'] . "', '" . $post['sum_insured'] . "', '" . $post['gross_premium'] . "', '" . $post['vat_rate'] . "', '" . $post['com_rate'] . "', '" . $post['premium_rate'] . "', '" . $post['other_charge'] . "', '" . $post['description'] . "', '" . $post['submit_by'] . "', '" . $post['submit_on'] . "', '" . $post['modified_by'] . "', '" . $post['modified_on'] . "', '" . $post['approved_by'] . "',  '" . $post['username2'] . "')";
-            
+            // var_dump($sql);exit;
             $db->query($sql);
-            // $res = $db->rowCount();
-            $res = $db->execute();
-            echo json_encode(array('status' => true, 'message' => 'SAVE SUCCESSFUL', 'action' => 'debit', 'ref_code' => $post['debit_code'], "td_cell" => "#ref_code"));
-            exit;
+            $res = $db->rowCount();
+            // $res = $db->execute();
+
         }
 
+        try {
+            if ($res > 0 && $post['ledger'] === "true") {
 
+                $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$post['debit_code']}%' AND ref_code = '{$post['ref_code']}'");
+                $db->execute();
+                $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'beneficiary', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
 
-
-        // try {
-        //     $db->query($sql);
-        //     $res = $db->rowCount();
-        //     // $res = $db->execute();
-        //     // var_dump($res);exit;
-        //     if ($res > 0) {
-
-        //         // $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$post['debit_code']}%' AND ref_code = '{$post['ref_code']}'");
-        //         // $db->execute();
-        //         // $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'beneficiary', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
-
-        //         // $gl = clone (object)$post;
+                $sql = "SELECT t1.* FROM tec_policy_debit t1 WHERE t1.debit_code = '" . $post['debit_code'] . "' LIMIT 1";
+                $db->query($sql);
+                $debitNote = $db->single();
+                $gl = clone (object)$debitNote;
                 
-        //         // // // debit | DR
-        //         // $gl->account_code = $ledger_mapping->debit->debit_account;
-        //         // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-        //         // $gl->debit = $gl->gross_premium;
-        //         // $gl->credit = '0';
-        //         // $gl->trans_code = $gl->debit_code;
-        //         // $gl->trans_type = 'DN';
-        //         // $gl->ref_code = $gl->debit_code;
-        //         // $gl->ref_detail = $gl->bus_type;
-        //         // $gl->trans_detail = $gl->trans_info ?? '';
+                // // debit | DR
+                $gl->account_code = $ledger_mapping->debit->debit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = $gl->gross_premium;
+                $gl->credit = '0';
+                $gl->trans_code = $gl->debit_code;
+                $gl->trans_type = 'DN';
+                $gl->ref_code = $gl->debit_code;
+                $gl->ref_detail = $gl->bus_type;
+                $gl->trans_detail = $gl->trans_info ?? '';
+                // $gl->currency_code = $gl->currency_code ?? '';
+                // $gl->currency_rate = $gl->currency_rate ?? '';
                 
-        //         // $sql = $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
-        //         // // // debit | CR
-        //         // $gl->account_code = $ledger_mapping->debit->credit_account;
-        //         // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-        //         // $gl->debit = '0';
-        //         // $gl->credit = $gl->gross_premium;
+                $sql = $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
+                // // debit | CR
+                $gl->account_code = $ledger_mapping->debit->credit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = '0';
+                $gl->credit = $gl->gross_premium;
                 
-        //         // $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
+                $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
                 
+                // debit-com | DR
+                $gl->account_code = $ledger_mapping->{'debit-com'}->debit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = $gl->commission;
+                $gl->credit = '0';
+                $gl->trans_type = 'PYM';
+                $gl->trans_code = $gl->debit_code . '-COM';
+
+                $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
+
+                // debit-com | CR
+                $gl->account_code = $ledger_mapping->{'debit-com'}->credit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = '0';
+                $gl->credit = $gl->commission;
+
+                $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
+
+                // debit-vat | DR
+                $gl->account_code = $ledger_mapping->{'debit-vat'}->debit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = $gl->vat;
+                $gl->credit = '0';
+                $gl->trans_type = 'VAT';
+                $gl->trans_code = $gl->debit_code . '-VAT';
+
+                $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
+
+                // debit-vat | CR
+                $gl->account_code = $ledger_mapping->{'debit-vat'}->credit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = '0';
+                $gl->credit = $gl->vat;
+
+                $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
                 
-        //         // // debit-com | DR
-        //         // $gl->account_code = $ledger_mapping->{'debit-com'}->debit_account;
-        //         // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-        //         // $gl->debit = $gl->commission;
-        //         // $gl->credit = '0';
-        //         // $gl->trans_type = 'PYM';
-        //         // $gl->trans_code = $gl->debit_code . '-COM';
-
-        //         // $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
-
-        //         // // debit-com | CR
-        //         // $gl->account_code = $ledger_mapping->{'debit-com'}->credit_account;
-        //         // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-        //         // $gl->debit = '0';
-        //         // $gl->credit = $gl->commission;
-
-        //         // $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
-
+                $db->query($sql);
+                $res = $db->execute();
                 
-        //         // // debit-vat | DR
-        //         // $gl->account_code = $ledger_mapping->{'debit-vat'}->debit_account;
-        //         // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-        //         // $gl->debit = $gl->vat;
-        //         // $gl->credit = '0';
-        //         // $gl->trans_type = 'VAT';
-        //         // $gl->trans_code = $gl->debit_code . '-VAT';
+                if($res == true){
+                    echo json_encode(array('status' => true, 'message ' => 'Debit Saved with ledger posting'));
+                    exit;
 
-        //         // $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
-
-        //         // // debit-vat | CR
-        //         // $gl->account_code = $ledger_mapping->{'debit-vat'}->credit_account;
-        //         // $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-        //         // $gl->debit = '0';
-        //         // $gl->credit = $gl->vat;
-
-        //         // $sql .= $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
+                }
+                // echo json_encode(array('status' => false, 'last_dn'=>true, 'ref_code' => $debit->debit_code, "td_cell" => "#debit_code"));
+                // exit;
                 
-        //         // $db->query($sql);
-        //         // $res = $db->execute();\
-        //         // echo json_encode(array('status' => false, 'last_dn'=>true, 'ref_code' => $debit->debit_code, "td_cell" => "#debit_code"));
-        //         // exit;
 
 
-        //     } else {
+            }else if($res > 0 && $post['ledger'] === "false" ){
 
-        //         echo json_encode(array('status' => false, 'message' => $res, 'msg' => $post));
-        //         exit;
-        //     }
-        // } catch (PDOException $e) {
-        //     echo json_encode(array('status' => false, 'message' => $e->getMessage() . ' ( ' . $sql . ' )'));
-        //     exit;
-        // }
-    // }
+                    echo json_encode(array('status' => true, 'message ' => 'Receipt Saved without ledger posting'));
+                    exit;
+            }else{
+                echo json_encode(array('status' => false, 'message ' => 'NOT SUCCESSFUL', 'data'=>$res));
+                exit;
+
+            }
+            //  else {
+
+            //     echo json_encode(array('status' => false, 'message' => $res, 'msg' => $post));
+            //     exit;
+            // }
+        } catch (PDOException $e) {
+            echo json_encode(array('status' => false, 'message' => $e->getMessage() . ' ( ' . $sql . ' )'));
+            exit;
+        }
+            
+        // echo json_encode(array('status' => true, 'message' => 'SAVE SUCCESSFUL', 'action' => 'debit', 'ref_code' => $post['debit_code'], "td_cell" => "#ref_code"));
+        // exit;

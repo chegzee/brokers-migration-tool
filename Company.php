@@ -4,7 +4,7 @@
 
     
     $post = filter_input_array(INPUT_POST);
-    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_phindol');
+    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_busag');
 
     //  if (($post['func'] ?? '') == 'savecompany'){
     // var_dump($post);exit;
@@ -25,7 +25,7 @@
         $db->query($comp);
         // $res = $db->execute();
         $res = $db->rowCount() > 0 ? true : false;
-        // var_dump($res);exit;
+        // var_dump($post['submit_by']);exit;
 
         if($res){
             echo json_encode(array('status' => false, 'message' => 'COMPANY EXIST'));

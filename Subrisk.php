@@ -2,7 +2,7 @@
     require_once 'libs/Database.php';
 
     $post = filter_input_array(INPUT_POST);
-    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_phindol');
+    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_busag');
     
         if($post['subrisk_name'] === '' || $post['alpha'] === '' || $post['subrisk_name'] === 'NONE'){
             echo json_encode(array('status' => false, 'message ' => 'SUBRISK NAME EMPTY', 'msg' => $post));

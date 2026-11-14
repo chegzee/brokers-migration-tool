@@ -5,8 +5,9 @@
     require 'SqlQuery.php';
 
     $post = filter_input_array(INPUT_POST);
-    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_phindol');
-
+    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_busag');
+    $sqlQuery = new SqlQuery();
+    // var_dump($post);exit;
         if($post['client_code'] === "" ||  $post['subrisk_code'] === "" || $post['company_code'] === "" || $post['risk_code'] === "" || $post['ref_code'] === "" || $post['ref_code'] === null || $post['bus_prop'] === 0){
             echo json_encode(array('status' => false, 'message' => 'SOME PARAMETERS ARE EMPTY'));
             exit;
@@ -36,7 +37,7 @@
         }
 
         //  DN
-        $sql = "SELECT t1.debit_code, t1.policy_code, t1.gross_premium, t1.commission, t1.sum_insured FROM tec_policy_debit t1 WHERE t1.debit_code = '" . $post['ref_code'] . "' LIMIT 1";
+        $sql = "SELECT t1.debit_code, t1.policy_code, t1.gross_premium, t1.net_premium, t1.commission, t1.sum_insured FROM tec_policy_debit t1 WHERE t1.debit_code = '" . $post['ref_code'] . "' LIMIT 1";
         $db->query($sql);
 
         $check = $db->rowCount() > 0 ? true : false;
@@ -47,7 +48,7 @@
         $debit = $db->single();
 
         $post['ref_code'] = $debit->debit_code;
-        $post['net_amount'] = $post['bus_prop'] / 100 * $debit->gross_premium;
+        $post['net_amount'] = $post['bus_prop'] / 100 * $debit->net_premium;
         $post['debit_account'] = $ledger_mapping->credit->debit_account;
         $post['credit_account'] = $ledger_mapping->credit->credit_account;
         $post["description"] = "BEING PREMIUM ON POLICY " . $debit->policy_code;
@@ -58,49 +59,53 @@
             $res = $db->rowCount();
             // $res = $db->execute();
             // var_dump($res);exit;
-            if ($res > 0) {
+            if ($res > 0 && $post['ledger'] === "true") {
 
-                // $gl = clone (object)$post;
+                $gl = clone (object)$post;
                 
-                // $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
+                $fields = array('account_code', 'account_name', 'debit', 'credit', 'trans_code', 'trans_type', 'ref_code', 'ref_detail', 'branch_code', 'policy_code', 'client_code', 'agent_code', 'company_code', 'trans_date', 'trans_detail', 'currency_code', 'currency_rate', 'submit_by', 'modified_by', 'approved_by');
 
-                // //delete existing
-                // $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$gl->credit_code}%' AND ref_code = '{$gl->ref_code}'");
-                // $db->execute();
+                //delete existing
+                $db->query("DELETE FROM act_gledger WHERE trans_code LIKE '{$gl->credit_code}%' AND ref_code = '{$gl->ref_code}'");
+                $db->execute();
 
-                
                 // credit | DR
-                //     $gl->account_code = $ledger_mapping->credit->debit_account;
-                //     $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                //     $gl->debit = $gl->net_amount;
-                //     $gl->credit = '0';
-                //     $gl->trans_code = $gl->credit_code;
-                //     $gl->trans_type = 'CN';
-                //     $gl->ref_detail = $gl->bus_type;
-                //     $gl->trans_detail = $gl->description;
-                    
-                //     $sql =  $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
-            
-                //     //credit | CR
-                //     $gl->account_code = $ledger_mapping->credit->credit_account;
-                //     $gl->account_name = $accountChart->{$gl->account_code}->account_name;
-                //     $gl->debit = '0';
-                //     $gl->credit = $gl->net_amount;
-                    
-                //     $sql .=  $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
+                $gl->account_code = $ledger_mapping->credit->debit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = $gl->net_amount;
+                $gl->credit = '0';
+                $gl->trans_code = $gl->credit_code;
+                $gl->trans_type = 'CN';
+                $gl->ref_detail = $gl->bus_type;
+                $gl->trans_detail = $gl->description;
+                
+                $sql =  $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => ""));
+        
+                //credit | CR
+                $gl->account_code = $ledger_mapping->credit->credit_account;
+                $gl->account_name = $accountChart->{$gl->account_code}->account_name;
+                $gl->debit = '0';
+                $gl->credit = $gl->net_amount;
+                
+                $sql .=  $sqlQuery->getQuery(array('array' => array($gl), 'action' => 'INSERT', 'fields' => $fields, 'table' => 'act_gledger', 'option' => "ADD"));
 
-                //    $db->query($sql);
-                //    $res = $db->execute();
+                $db->query($sql);
+                $res = $db->execute();
 
-                echo json_encode(array('status' => true, 'message' => $res));
+                if($res == true){
+                    echo json_encode(array('status' => true, 'message ' => 'Credit Saved with ledger posting'));
+                    exit;
+
+                }
+            }else if($res > 0 && $post['ledger'] === "false" ){
+
+                echo json_encode(array('status' => true, 'message ' => 'Credit Saved without ledger posting'));
                 exit;
-            } else {
-
-                echo json_encode(array('status' => false, 'message' => $res));
+            }else{
+                echo json_encode(array('status' => false, 'message ' => 'NOT SUCCESSFUL', 'data'=>$res));
                 exit;
             }
         } catch (PDOException $e) {
             echo json_encode(array('status' => false, 'message' => $e->getMessage() . ' ( ' . $sql . ' )'));
             exit;
         }
-    // }

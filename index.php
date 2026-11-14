@@ -2,7 +2,7 @@
     require_once 'libs/Database.php';
     require 'SqlQuery.php';
 
-    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_thrive');
+    $db = new Database('localhost', 'root', 'Scaredinfo1', 'brokerage_busag');
     // $sqlQuery = new SqlQuery();
     $sql = "SELECT t1.auto_id, t1.subrisk_code, t1.subrisk_name, t1.alpha, t1.digit, t1.def_premium_rate, t2.premium_rate, t2.com_rate, t2.vat_rate, t1.def_com_rate, t1.risk_code, t1.status, t2.risk_name, LEFT(t1.modified_on, 16) modified_on FROM cod_subrisk t1 LEFT JOIN (SELECT t21.risk_code, t21.risk_name, t21.premium_rate, t21.com_rate, t21.vat_rate FROM cod_risk t21) t2 ON t1.risk_code = t2.risk_code WHERE 1=1 ";
     //
@@ -199,6 +199,7 @@
                 <label class="select-file" onclick="select_file()"> Select File</label>
                 <label class="btn-post"><input type="checkbox" id="process" onclick="processload2(event)"> Post</label>
                 
+                <label id="custom" class="btn-action" onclick="customDuty({result: '#result', action: 'custom', url: 'http://localhost/migration/customTariff.php'})" style="cursor:pointer;"> custom tariff </label>
                 <label id="account" class="btn-action" onclick="act_account({result: '#result', action: 'account', url: 'http://localhost/migration/Accounts.php'})" style="cursor:pointer;"> account </label>
                 <label id="act_gledger" class="btn-action" onclick="act_gledger({result: '#result', action: 'act_gledger', url: 'http://localhost/migration/Act_gledger.php'})" style="cursor:pointer;"> ledger </label>
                 <label id="insurer" class="btn-action" onclick="companyTable({result: '#result', action: 'insurer', url: 'http://localhost/migration/Company.php'})" style="cursor:pointer;"> insurers </label>
@@ -212,6 +213,46 @@
                 <label id="payment" class="btn-action" onclick="paymentTable({result: '#result', action: 'payment', url: 'http://localhost/migration/Payment.php'})" style="cursor:pointer;"> payment </label>
                 <label id="insurer"co_broker class="btn-action" onclick="coBrokerTable({result: '#result', action: 'co_broker', url: 'http://localhost/migration/CoBroker.php'})" style="cursor:pointer;"> coBrokers </label>
                 <label id="start_end_date" class="btn-action" onclick="correct_start_end_date({result: '#result', action: 'start_end_date', url: 'http://localhost/migration/Correct_start_date.php'})" style="cursor:pointer;"> start_end </label>
+                <label id="start_end_date" class="btn-action" onclick="convertSelectToArray()" style="cursor:pointer;"> convertSelectToArray </label>
+                <label id="start_end_date" class="btn-action" onclick="convertSelectToTable({result: '#result', action: 'start_end_date', url: 'http://localhost/migration/VehicleMake.php'})" style="cursor:pointer;"> convertSelectToTable </label>
+                 <select  id="vehicle-make">
+                    <option class="" value="acura">Acura</option>
+                    <option class="" value="audi">Audi</option>
+                    <option class="" value="bmw">BMW</option>
+                    <option class="" value="buick">Buick</option>
+                    <option class="" value="cadillac">Cadillac</option>
+                    <option class="" value="chevrolet">Chevrolet</option>
+                    <option class="" value="chrysler">Chrysler</option>
+                    <option class="" value="dodge">Dodge</option>
+                    <option class="" value="eagle">Eagle</option>
+                    <option class="" value="ford">Ford</option>
+                    <option class="" value="geo">Geo</option>
+                    <option class="" value="gmc">GMC</option>
+                    <option class="" value="honda">Honda</option>
+                    <option class="" value="hyundai">Hyundai</option>
+                    <option class="" value="infiniti">INFINITI</option>
+                    <option class="" value="isuzu">Isuzu</option>
+                    <option class="" value="jaguar">Jaguar</option>
+                    <option class="" value="jeep">Jeep</option>
+                    <option class="" value="land-rover">Land Rover</option>
+                    <option class="" value="lexus">Lexus</option>
+                    <option class="" value="lincoln">Lincoln</option>
+                    <option class="" value="mazda">Mazda</option>
+                    <option class="" value="mercedes-benz">Mercedes-Benz</option>
+                    <option class="" value="mercury">Mercury</option>
+                    <option class="" value="mitsubishi">Mitsubishi</option>
+                    <option class="" value="nissan">Nissan</option>
+                    <option class="" value="oldsmobile">Oldsmobile</option>
+                    <option class="" value="plymouth">Plymouth</option>
+                    <option class="" value="pontiac">Pontiac</option>
+                    <option class="" value="porsche">Porsche</option>
+                    <option class="" value="saab">Saab</option>
+                    <option class="" value="subaru">Subaru</option>
+                    <option class="" value="suzuki">Suzuki</option>
+                    <option class="" value="toyota">Toyota</option>
+                    <option class="" value="volkswagen">Volkswagen</option>
+                    <option class="" value="volvo">Volvo</option>
+                </select>
                 
                 <label class="v-save">Saved <span id="saved">0</span></label>
                 <label class="v-unsave"> UnSaved <span id="alreadyExist">0</span></label>
@@ -251,6 +292,18 @@
             let rows = [];
             let keys = [];
             let url = '';
+            let selectValue = null;
+            let systemUser = 'russia'
+            let postToLedger = true
+            let currencyCode = 'NGN';
+            let branchAbbreviation = 'B';
+            let branchCode = 'LAG/01/001';
+            let agentCode = 'A/20/000003';
+            let business = 'Corporate';
+            let currencyRate = 1;
+            let insurerProp = 'decimal';
+            let remittanceAccount = '1000005'
+            let receipt_by = 'eyitomabel@busaginsurancebrokers.com';
             // let clients = {};
             const subriskObj = <?php echo json_encode($subriskObj) ?>;
             const insurersObj = <?php echo json_encode($insurersObj) ?>;
@@ -261,7 +314,196 @@
             const clients = <?php echo json_encode($clients) ?>;
             const accounts = <?php echo json_encode($accounts) ?>;
             const act_group = <?php echo json_encode($act_group) ?>;
-            // console.log(act_group);
+            //  console.log(sysUser);
+
+            
+            let convertSelectToArray = ()=>{
+                selectValue = [];
+                const selectElement = document.querySelector('#vehicle-make');
+                // let counter = 0
+                $.each(selectElement.options, (i, v)=>{
+                    i + 1;
+                    selectValue.push({sn: i, veh_make: v.value});
+                    // 
+                })
+                // selectValue = Array.from(selectElement.options, option => {year :option.value});
+                console.log(selectValue);
+            }
+
+            let convertSelectToTable = (json)=>{
+                // console.log(json);return;
+                url = json.url
+                reset({});
+                document.querySelector('#saved').innerText = 0;
+                document.querySelector('#alreadyExist').innerText = 0
+                action = "savecompany";
+                $("#action_name").html("select value saving");
+                let counter = 0;
+                
+                if(selectValue.length > 0){
+                    document.getElementById("process_btn").innerHTML = json.action + "";
+                    // fields = Object.keys(exceljson[0]);
+                }else{
+                    document.getElementById("process_btn").innerHTML = "Empty Data";return
+                }
+                //clean the table
+                $(json.result + " > thead").find('tr').remove();
+                $(json.result + " > tbody").find('tr').remove();
+                var selectfields = ['sn', 'veh_make'];
+                
+                setTimeout(function() {
+                    let html = '<tr disabled>';
+                    selectfields.forEach(function(v_, i_) {
+                        html += '<td><strong>' + v_ + '</strong></td>';
+                    });
+                    html += '</tr>';
+                    $(json.result +" > thead").append(html);
+
+                    excel_data = selectValue.map(function(v, i) {
+                        counter++;
+                        html = '<tr id="'+i+'" class="row">';
+
+                        selectfields.forEach(function(v_, i_) {
+
+                            if (typeof v[v_] === undefined) {
+                                // v[v_] = '';
+                                html += '<td></td>';
+                                return;
+                            }
+
+                            html += '<td>' + v[v_] + '</td>';
+                            $('#meta').html(i);
+
+                        });
+
+                        html += '</tr>';
+                        $(json.result + " > tbody").append(html);
+                        return v;
+                    })
+                    // console.log(excel_data);
+                    document.querySelector('#result > tbody').addEventListener('click', (event) => {
+                        let row = {};
+                        //
+                        let elem = event.target.closest('tr');
+                        let rowId = elem.id;
+                        row = selectValue[rowId];
+                        // row['func'] = action;
+                        // console.log(row);return;
+                        if (rowId >= 0) {
+                            $.post(url, row, function(data) {
+                                let current = $('#result > tbody').find('tr:eq(' + rowId + ')');
+                                // console.log(data.td_cell)
+                                if (data.status) {
+                                    current.css({
+                                        'background-color': '#c4ffbd'
+                                    });
+                                } else if (data.status == false) {
+                                    current.css({
+                                        'background-color': 'rgb(247, 182, 179)'
+                                    });
+                                    current.find(data.td_cell).css({
+                                        'color': 'blue',fontSize: "18px"
+                                    });
+                                }
+                            }, 'JSON');
+                        }
+                    })
+
+                });
+            }
+
+            let customDuty = (json)=>{
+                // console.log(json);return;
+                url = json.url
+                reset({});
+                document.querySelector('#saved').innerText = 0;
+                document.querySelector('#alreadyExist').innerText = 0
+                action = "savecompany";
+                $("#action_name").html("custom tariff saving");
+                let counter = 0;
+                
+                if(exceljson.length > 0){
+                    document.getElementById("process_btn").innerHTML = json.action + "";
+                    // fields = Object.keys(exceljson[0]);
+                }else{
+                    document.getElementById("process_btn").innerHTML = "Empty Data";return
+
+                }
+
+                //clean the table
+                $(json.result + " > thead").find('tr').remove();
+                $(json.result + " > tbody").find('tr').remove();
+                var dutyfields = ['sn', 'sub_code', 'cet_code', 'description', 'su', 'duty', 'vat', 'levy', 'exc', 'dov'];
+                
+                setTimeout(function() {
+                    let html = '<tr disabled>';
+                    dutyfields.forEach(function(v_, i_) {
+                        html += '<td><strong>' + v_ + '</strong></td>';
+                    });
+                    html += '</tr>';
+                    $(json.result +" > thead").append(html);
+
+                   excel_data =  Object.values(exceljson).filter((v)=>{
+                        v['sub_code'] = String(v['cet_code']).substring(0, 2);
+                        if(v['sub_code'] === '87'){
+                            return v
+                        }
+                    })
+                    // console.log(excel_data)
+                    excel_data.map(function(v, i) {
+                        
+                        counter++;
+                        // let page = String(v['page']).trim().toLowerCase();
+                        v['sn'] = i;
+                        html = '<tr id="'+i+'" class="row">';
+
+                        dutyfields.forEach(function(v_, i_) {
+
+                            if (typeof v[v_] === undefined) {
+                                // v[v_] = '';
+                                html += '<td></td>';
+                                return;
+                            }
+                            html += '<td>' + v[v_] + '</td>';
+                            $('#meta').html(i);
+
+                        });
+
+                        html += '</tr>';
+                        $(json.result + " > tbody").append(html);
+                        return v;
+                    })
+                    
+                    document.querySelector('#result > tbody').addEventListener('click', (event) => {
+                        let row = {};
+                        //
+                        let elem = event.target.closest('tr');
+                        let rowId = elem.id;
+                        row = excel_data[rowId];
+                        // row['func'] = action;
+                        // console.log(row);return;
+                        if (rowId >= 0) {
+                            $.post(url, row, function(data) {
+                                let current = $('#result > tbody').find('tr:eq(' + rowId + ')');
+                                // console.log(data.td_cell)
+                                if (data.status) {
+                                    current.css({
+                                        'background-color': '#c4ffbd'
+                                    });
+                                } else if (data.status == false) {
+                                    current.css({
+                                        'background-color': 'rgb(247, 182, 179)'
+                                    });
+                                    current.find(data.td_cell).css({
+                                        'color': 'blue',fontSize: "18px"
+                                    });
+                                }
+                            }, 'JSON');
+                        }
+                    })
+
+                });
+            }
 
             let companyTable = (json)=>{
                 url = json.url
@@ -271,16 +513,12 @@
                 action = "savecompany";
                 $("#action_name").html("company saving");
                 let counter = 0;
-                // let fields = null;
-                // if(exceljson.length > 0){
-                //     fields = Object.keys(exceljson[0]);
-                // }
+
                 if(exceljson.length > 0){
                     document.getElementById("process_btn").innerHTML = json.action + "";
                     // fields = Object.keys(exceljson[0]);
                 }else{
                     document.getElementById("process_btn").innerHTML = "Empty Data";return
-
                 }
 
                 //clean the table
@@ -302,14 +540,8 @@
                         let page = String(v['page']).trim().toLowerCase();
                         let mid = "000000" + counter;
                         v['password'] = "Soa1tJj94/" + counter;
-                        let sys_user = String(v['sys_user']).trim().toLowerCase();
-                        if(sys_user == null || sys_user == '' || sys_user == undefined){
-                            sys_user = String('Michael').toLowerCase();
-                        }
-                        let mkt = sysUser[sys_user] ;
-                        if(mkt == null || mkt == '' || mkt == undefined){
-                            mkt = sysUser[String('Michael').toLowerCase()];
-                        }
+                        let mkt = sysUser[systemUser] ;
+                        // console.log(mkt);
                         v['sys_user'] = mkt;
                         v["submit_by"] = v['sys_user'];
                         v["company_type"] = "Insurance";
@@ -585,14 +817,7 @@
 
                         let mid = "000" + counter + month;
 
-                        let sys_user = String(v['sys_user']).trim().toLowerCase();
-                        if(sys_user == null || sys_user == '' || sys_user == undefined){
-                            sys_user = String('Michael').toLowerCase();
-                        }
-                        let mkt = sysUser[sys_user] ;
-                        if(mkt == null || mkt == '' || mkt == undefined){
-                            mkt = sysUser[String('Michael').toLowerCase()];
-                        }
+                        let mkt = sysUser[systemUser] ;
                         v['sys_user'] = mkt;
                         v["submit_by"] = v['sys_user'];
                         v["modified_by"] = v['sys_user'];
@@ -1022,7 +1247,7 @@
                         let monthYear = month +""+ fullYear;
 
                         let mid = "00000" + counter;
-                        v['username'] = 'thriveclient.' + page + monthYear + i + '@gmail.com';
+                        v['username'] = 'busagclient.' + page + monthYear + i + '@gmail.com';
                         v['business'] = 'Corporate';
                         let agent_code = ((v['agent_name'] ?? '').toLowerCase() == '' || (v['agent_name'] ?? '').toLowerCase() == undefined) ? 'direct' : v['agent_name'];
                         v['agent_code'] = agents[agent_code]??''
@@ -1035,54 +1260,59 @@
                             v['client_code'] = clients[insured];
                         }
 
-                        if(((v['business'] ?? '').trim()) !== 'Corporate'){
-                           let names = insured.trim().split(' ')
-                            v['first_name'] = names[0] ?? '';
-                            v['last_name'] = names[1] ?? '';
-                            v['middle_name'] = names[2] ?? '';
-                            v['business'] = v['business'] ?? 'Individual';
-                            v['id_type'] = 'NATIONAL_ID_CARD';
-                            v['id_number'] = '123' + i;
-                            v['client_name'] = v['title'] + " " + v['first_name'] + " " + v['last_name'];
+                        // if(((v['business'] ?? '').trim()) !== 'Corporate'){
+                        //    let names = insured.trim().split(' ')
+                        //     v['first_name'] = names[0] ?? '';
+                        //     v['last_name'] = names[1] ?? '';
+                        //     v['middle_name'] = names[2] ?? '';
+                        //     v['business'] = v['business'] ?? 'Individual';
+                        //     v['id_type'] = 'NATIONAL_ID_CARD';
+                        //     v['id_number'] = '123' + i;
+                        //     v['client_name'] = v['title'] + " " + v['first_name'] + " " + v['last_name'];
 
-                            if((v['title'] ?? '') === 'Mr.' || (v['title'] ?? '') === 'Bar.' || (v['title'] ?? '') === 'Alhaji'){
-                                v['gender'] = "Male";
-                                v['marital_status'] = 'Married';
-                            }else if((v['title'] ?? '') === "Mrs."){
-                                v['gender'] = 'Female';
-                                v['marital_status'] = 'Married';
-                            }else if((v['title'] ?? '') === "Miss."){
-                                v['gender'] = 'Female';
-                                v['marital_status'] = 'Single';
-                            }
+                        //     if((v['title'] ?? '') === 'Mr.' || (v['title'] ?? '') === 'Bar.' || (v['title'] ?? '') === 'Alhaji'){
+                        //         v['gender'] = "Male";
+                        //         v['marital_status'] = 'Married';
+                        //     }else if((v['title'] ?? '') === "Mrs."){
+                        //         v['gender'] = 'Female';
+                        //         v['marital_status'] = 'Married';
+                        //     }else if((v['title'] ?? '') === "Miss."){
+                        //         v['gender'] = 'Female';
+                        //         v['marital_status'] = 'Single';
+                        //     }
                             
-                        }else{
-                            v['first_name'] = insured.toUpperCase();
-                            v['middle_name'] = '';
-                            v['last_name'] =  insured.toUpperCase();
-                            v['title'] = "Mr.";
-                            v['marital_status'] = "Single";
-                            v['gender'] = "Male";
-                            v['id_type'] = 'CAC_NUMBER';
-                            v['nin'] = '123456';
-                            v['bvn_number'] = '567890';
-                            v['id_number'] = '123' + i;
-                            v['client_name'] =  insured.toUpperCase();
-                        }
+                        // }else{
+                        //     v['first_name'] = insured.toUpperCase();
+                        //     v['middle_name'] = '';
+                        //     v['last_name'] =  insured.toUpperCase();
+                        //     v['title'] = "Mr.";
+                        //     v['marital_status'] = "Single";
+                        //     v['gender'] = "Male";
+                        //     v['id_type'] = 'CAC_NUMBER';
+                        //     v['nin'] = '123456';
+                        //     v['bvn_number'] = '567890';
+                        //     v['id_number'] = '123' + i;
+                        //     v['client_name'] =  insured.toUpperCase();
+                        // }
+                        v['business'] = business;
+                        v['first_name'] = insured.toUpperCase();
+                        v['middle_name'] = '';
+                        v['last_name'] =  insured.toUpperCase();
+                        // v['title'] = "Mr.";
+                        // v['marital_status'] = "Single";
+                        // v['gender'] = "Male";
+                        v['id_type'] = 'CAC_NUMBER';
+                        v['nin'] = '123456';
+                        v['bvn_number'] = '567890';
+                        v['id_number'] = '123' + i;
+                        v['client_name'] =  insured.toUpperCase();
 
-                        let sys_user = String(v['sys_user']).trim().toLowerCase();
-                        if(sys_user == null || sys_user == '' || sys_user == undefined){
-                            sys_user = String('Michael').toLowerCase();
-                        }
-                        let mkt = sysUser[sys_user] ;
-                        if(mkt == null || mkt == '' || mkt == undefined){
-                            mkt = sysUser[String('Michael').toLowerCase()];
-                        }
+                        let mkt = sysUser[systemUser] ;
                         v['sys_user'] = mkt;
 
                         v['address'] = 'LAGOS';
                         v['phone'] = '345678765';
-                        v['religion'] = 'CHRISTIANITY';
+                        // v['religion'] = 'CHRISTIANITY';
                         v['occupation'] = 'Businesses and financial';
                         v["title"] = v["title"] ?? '';
                         v['state'] = 'FCT';
@@ -1168,6 +1398,7 @@
                     document.getElementById("process_btn").innerHTML = "Empty Data";return
 
                 }
+
                 let policyFields = ['sn', 'policy_code', 'insured', 'subrisk_name', 'insurer', 'ppn', 'gross_premium', 'commission', 'broker_name', 'broker_prop'];
 
                 setTimeout(function() {
@@ -1194,14 +1425,7 @@
                         
                         let monthYear = month +""+ fullYear;
 
-                        let sys_user = String(v['sys_user']).trim().toLowerCase();
-                        if(sys_user == null || sys_user == '' || sys_user == undefined){
-                            sys_user = String('Michael').toLowerCase();
-                        }
-                        let mkt = sysUser[sys_user] ;
-                        if(mkt == null || mkt == '' || mkt == undefined){
-                            mkt = sysUser[String('Michael').toLowerCase()];
-                        }
+                        let mkt = sysUser[systemUser] ;
                         v['sys_user'] = mkt;
 
                         // v['trans_date'] =  moment(v['start_date'], 'D-MMM-YY').format('YYYY-MM-DD') ?? moment(new Date().toLocaleDateString(), 'DD/MM/YYYY').format('YYYY-MM-DD');
@@ -1213,32 +1437,43 @@
                         v['modified_on'] = v['start_date'];
                         let policy_code ='';
 
-                        if((v['policy_code'] ?? '') == "" || v['policy_code'] == undefined || v['policy_code'] == "TBA") {
-                            
-                            policy_code = "TBA"+  (page.toUpperCase()) + i + monthYear;
-                        }else{
-                            let pol = policies[v['policy_code']] ?? '';
-                            if(pol !== ''){
-                                policy_code = v['policy_code'] + page + i;
+                        if(String(v['policy_code']).trim() === "TBA"){
+                            // policy_code = "TBA"+  (page.toUpperCase()) + i + monthYear;
+                            v['policy_code'] =  "TBA"+  (page.toUpperCase()) + i + monthYear;
 
-                            }else{
-                                policy_code = v['policy_code']
-
-                            }
                         }
+                        else if(v['policy_code'] == undefined){
+                            v['policy_code'] = '';
+                        }
+
+
+                        // if((v['policy_code'] ?? '') == "" || v['policy_code'] == undefined || v['policy_code'] == "TBA") {
+                            
+                        //     policy_code = "TBA"+  (page.toUpperCase()) + i + monthYear;
+                        // }else{
+                        //     let pol = policies[v['policy_code']] ?? '';
+                        //     if(pol !== ''){
+                        //         policy_code = v['policy_code'] + page + i;
+
+                        //     }else{
+                        //         policy_code = v['policy_code']
+
+                        //     }
+                        // }
                         
                         v['subrisk_code'] = (subriskObj[subrisk_name] ?? {})['subrisk_code'] ?? '';
                         v['risk_code'] = (subriskObj[subrisk_name] ?? {})['risk_code']??'' ;
                         v['client_code'] = (clients[insured]);
                         v['client_name'] = String(v['insured']).trim().toUpperCase() 
 
-                        if(policies[policy_code] === undefined ){
-                            policies[policy_code] = policy_code;
-                            v['policy_code'] = policy_code;
+                        // if(policies[policy_code] === undefined ){
+                        //     policies[policy_code] = policy_code;
+                        //     v['policy_code'] = policy_code;
 
-                        }else{
-                            v['policy_code'] = policies[policy_code];
-                        }
+                        // }else{
+                        //     v['policy_code'] = policies[policy_code];
+                        // }
+
                         if(v['subrisk_name'] === null || v['subrisk_name'] === undefined){
                             v['subrisk_name'] = '';
                         }
@@ -1307,10 +1542,9 @@
                     // fields = Object.keys(exceljson[0]);
                 }else{
                     document.getElementById("process_btn").innerHTML = "Empty Data";return
-
                 }
                 // INSERT
-                let debitFields = ['sn', 'trans_date','debit_code', 'ref_code', 'insured', 'subrisk_name', 'insurer', 'ppn', 'sum_insured', 'gross_premium', 'commission', 'broker_name', 'broker_prop' ];
+                let debitFields = ['sn', 'policy_code', 'trans_date', 'start_date', 'end_date','debit_code', 'ref_code', 'insured', 'subrisk_name', 'insurer', 'ppn', 'sum_insured', 'gross_premium', 'commission', 'broker_name', 'broker_prop' ];
 
                 setTimeout(function() {
 
@@ -1327,22 +1561,19 @@
                         let subrisk_name = String(v['subrisk_name']).toLowerCase().trim();
                         let insured = String(v['insured']).toLowerCase().trim();
                         let insurer = String(v['insurer']).toLowerCase().trim();
+                        
                         // let policy_code = String(v['policy_code']).toLowerCase();
                         v['risk_code'] = (subriskObj[subrisk_name]?? '')['risk_code'] ?? '';
                         v['subrisk_code'] = (subriskObj[subrisk_name]??'')['subrisk_code']??'';
                         v['company_code'] = (insurersObj[insurer]??'');
                         v['client_code'] = (clients[insured]??'');
-                        v['branch_code'] = 'BR002';
-                        v['agent_code'] = 'A/20/000003';
+                        v['branch_code'] = branchCode;
+                        v['agent_code'] = agentCode;
+                        v['ledger'] = postToLedger;
+                        v['currency_code'] = currencyCode;
+                        v['currency_rate'] = currencyRate;
                         
-                        let sys_user = String(v['sys_user']).trim().toLowerCase();
-                        if(sys_user == null || sys_user == '' || sys_user == undefined){
-                            sys_user = String('Michael').toLowerCase();
-                        }
-                        let mkt = sysUser[sys_user] ;
-                        if(mkt == null || mkt == '' || mkt == undefined){
-                            mkt = sysUser[String('Michael').toLowerCase()];
-                        }
+                        let mkt = sysUser[systemUser] ;
                         v['sys_user'] = mkt;
                         
                         v['submit_by'] = v['sys_user'] ;
@@ -1358,11 +1589,11 @@
                         let end_date = v['end_date'];
                         if(end_date === null || end_date === '' || end_date === undefined){
                             // end_date = moment()
-                            v['end_date'] = moment(end_date).add(1, 'y'); 
+                            v['end_date'] = moment(end_date).add(1, 'y').format("YYYY-MM-DD"); 
                         }
 
                         counter++;
-                        // v['trans_date'] = v['start_date'];
+                        v['trans_date'] = v['start_date'];
                         let date = new Date(v['start_date'])
                         let month = date.getMonth() + 1;
                         let fullYear = date.getFullYear()
@@ -1372,7 +1603,19 @@
                         let mid = "000000" + counter;
                         
                         let page = String(v['page']).trim();
-                        let debit_code = ('DN/PH/' +  (page.toUpperCase()) + mid.slice(-6) + '/' + monthYear);
+                        
+                        if(String(v['policy_code']).trim() === "TBA"){
+                            // policy_code = "TBA"+  (page.toUpperCase()) + i + monthYear;
+                            v['policy_code'] =  "TBA"+  (page.toUpperCase()) + i + monthYear;
+
+                        }
+                        else 
+                            if(v['policy_code'] == undefined){
+                            v['policy_code'] = '';
+                        }
+
+                        let debit_code = ('DN/' + branchAbbreviation + '/' +  (page.toUpperCase()) + mid.slice(-6) + '/' + monthYear);
+
                         v['debit_code'] =  ((v['debit_code'] ?? '') == '' || v['debit_code'] == 'TBA' || v['debit_code'] == undefined) ? debit_code : v['debit_code'];
                         if(v['sum_insured'] == null || v['sum_insured'] == '' || v['sum_insured'] == undefined){
                             v['sum_insured'] = 0;
@@ -1427,6 +1670,7 @@
                             $('#meta').html(i);
 
                         });
+
                         html += '</tr>';
                         $(json.result + " > tbody").append(html);
                         return v;
@@ -1491,7 +1735,7 @@
 
                 }
                 // INSERT
-                 let creditFields =  ['sn', 'ref_code', 'policy_code', 'insured', 'subrisk_name', 'insurer', 'credit_code', 'ppn', 'gross_premium', 'commission', 'broker_name', 'broker_prop'];
+                 let creditFields =  ['sn', 'ref_code', 'policy_code', 'insured', 'subrisk_name', 'insurer', 'credit_code', 'bus_prop', 'company_code'];
 
                 setTimeout(function() {
 
@@ -1517,15 +1761,17 @@
                         let monthYear = month +""+ fullYear;
 
                         let mid = "000000" + counter;
-                        let credit_code =  'CN/RA/'+  (page.toUpperCase()) + mid.slice(-6) + '/' + monthYear;
+                        let credit_code =  'CN/'+ branchAbbreviation + '/'+  (page.toUpperCase()) + mid.slice(-6) + '/' + monthYear;
                         
                         v['credit_code'] = credit_code;
                         v['bus_type'] = 'INS';
-                        v['bus_prop'] = (v['ppn'] === null || v['ppn'] === undefined || v['ppn'] === '') ? 0 : v['ppn'] * 100;
-                        // v['bus_prop'] = v['ppn'] === null ? 0 : v['ppn'] * 100;
+                        // v['bus_prop'] = (v['ppn'] === null || v['ppn'] === undefined || v['ppn'] === '') ? 0 : v['ppn'] * 100;
+                        v['bus_prop'] = insurerProp === 'decimal' ? (v['insurer_prop'] * 100) : v['insurer_prop'];
+                        
                         v['status'] = '1';
                         let company_code = insurersObj[insurer] ?? '';
                         v['company_code'] = company_code;
+                        v['ledger'] = postToLedger;
                     
                         html = '<tr id="'+i+'" class="row">';
                         creditFields.forEach(function(v_, i_) {
@@ -1698,7 +1944,7 @@
 
                 }
                 // INSERT
-                let debitFields = ['sn', 'debit_code', 'ref_code', 'receipt_code', 'policy_code', 'insured', 'subrisk_name', 'insurer', 'ppn', 'gross_premium', 'commission', 'broker_name', 'broker_prop'];
+                let debitFields = ['sn', 'debit_code', 'ref_code', 'receipt_code', 'policy_code', 'insured', 'subrisk_name', 'subrisk_code'];
                 
                 setTimeout(function() {
 
@@ -1731,17 +1977,18 @@
                         let monthYear = month +""+ fullYear;
 
                         let mid = "000000" + counter;
-                        let receipt_code = 'RCP/RA/' +  (page.toUpperCase()) + mid.slice(-6) + '/' + monthYear;
+                        let receipt_code = 'RCP/' + branchAbbreviation + '/' +  (page.toUpperCase()) + mid.slice(-6) + '/' + monthYear;
                         receipt_code =  (v['receipt_code'] == 'TBA' || (v['receipt_code'] ?? '') == '' || v['receipt_code'] == undefined) ? receipt_code : v['receipt_code'];
                         v['receipt_code'] = receipt_code;
                         //////////////////////////////////////////////////////////////////////////////////
                         v['amt_received'] = ((v['amount_received'] ?? '') == '' || v['amount_received'] == undefined) ? v['gross_premium'] : v['amount_received'] ;
-                        v['branch_code'] = 'LAG/01/001';
-                        v['agent_code'] = 'A/20/000003';
+                        v['branch_code'] = branchCode;
+                        v['agent_code'] = agentCode;
+                        v['ledger'] = postToLedger;
                         
-                        v['submit_by'] = 'benjamin.kanto@phindolinsurancebrokers.ng';
+                        v['submit_by'] = receipt_by;
                         v['submit_on'] =  v['start_date'];
-                        v['modified_by'] = 'benjamin.kanto@phindolinsurancebrokers.ng';
+                        v['modified_by'] = receipt_by;
                         v['modified_on'] = v['start_date'];
                         v['bus_type'] = "RCP";
                        v['bank_description'] =  (v['bank_description'] === null || v['bank_description'] === undefined) ? "BEING PREMIUM RECEIVED" : v['bank_description']
@@ -1770,7 +2017,7 @@
                         let rowId = elem.id;
                         row = excel_data[rowId];
                         // row['func'] = 'savereceipt';
-                        // console.log(row);return;
+                        // console.log(row.ref_code);
 
                         if (rowId >= 0) {
 
@@ -1792,6 +2039,7 @@
                     })
 
                 }, 1000);
+
             }
 
             //payment
@@ -1839,14 +2087,16 @@
                         
                         let monthYear = month +""+ fullYear;
                         let mid = "000000" + counter;
-                        let payment_code =  'P/RA/'+  (page.toUpperCase()) + mid.slice(-6) + '/' + monthYear;
+                        let payment_code =  'P/' + branchAbbreviation + '/' +  (page.toUpperCase()) + mid.slice(-6) + '/' + monthYear;
                         v['payment_code'] = payment_code;
 
                         v['bus_type'] = "PYM";
                         
-                        v['submit_by'] = 'benjamin.kanto@phindolinsurancebrokers.ng';
+                        v['submit_by'] = receipt_by;
                         v['submit_on'] =  v['start_date'];
-                        v['modified_by'] = 'benjamin.kanto@phindolinsurancebrokers.ng';
+                        v['modified_by'] = receipt_by;
+                        v['ledger'] = postToLedger;
+                        v['credit_account'] = remittanceAccount;
 
                         html = '<tr id="'+i+'" class="row">';
                         paymentFields.forEach(function(v_, i_) {
@@ -1892,6 +2142,7 @@
                     })
 
                 }, 1000);
+
             }
 
             let correct_start_end_date = (json)=>{
@@ -1999,10 +2250,10 @@
                             }
 
                             if (xlsxflag) {
-                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["2020"]);
+                                exceljson = XLSX.utils.sheet_to_json(workbook.Sheets["busag_2026"]);
                                 console.log(exceljson);
                             } else {
-                                exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets["2020"]);
+                                exceljson = XLS.utils.sheet_to_row_object_array(workbook.Sheets["busag_2026"]);
                                 console.log(exceljson);
                             }
                         }
@@ -2096,8 +2347,6 @@
 
                     }
 
-
-
                 }else{
                     reset({});
                 }
@@ -2116,14 +2365,12 @@
             }
 
             let select_file = ()=>{
-
                 const anchorElement = document.getElementById('file');
                 anchorElement.click();
             }
 
             $(function($) {
                 reset({});
-
             });
         </script>
 </html>
